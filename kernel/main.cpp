@@ -1,11 +1,11 @@
 #include <cstdint>
 #include <cstddef>
-#include "frame_buffer_config.hpp"
+#include <cstdio>
 
-struct PixelColor
-{
-    uint8_t r, g, b;
-};
+#include "frame_buffer_config.hpp"
+#include "graphics.hpp"
+#include "font.hpp"
+#include "console.hpp"
 
 void *operator new(std::size_t size, void *buf)
 {
@@ -14,55 +14,24 @@ void *operator new(std::size_t size, void *buf)
 
 void operator delete(void *obj) noexcept {}
 
-class PixelWriter
-{
-public:
-    PixelWriter(const FrameBufferConfig &config) : config_{config}
-    {
-    }
-    virtual ~PixelWriter() = default;
-    virtual void Write(int x, int y, const PixelColor &c) = 0;
-
-protected:
-    uint8_t *PixelAt(int x, int y)
-    {
-        return config_.frame_buffer + 4 * (config_.pixels_per_scan_line * y + x);
-    }
-
-private:
-    const FrameBufferConfig& config_;
-};
-
-class RGBResv8BitPerColorPixelWriter : public PixelWriter
-{
-public:
-    using PixelWriter::PixelWriter;
-
-    virtual void Write(int x, int y, const PixelColor &c) override
-    {
-        auto p = PixelAt(x, y);
-        p[0] = c.r;
-        p[1] = c.g;
-        p[2] = c.b;
-    }
-};
-
-class BGRResv8BitPerColorPixelWriter : public PixelWriter
-{
-public:
-    using PixelWriter::PixelWriter;
-
-    virtual void Write(int x, int y, const PixelColor &c) override
-    {
-        auto p = PixelAt(x, y);
-        p[0] = c.b;
-        p[1] = c.g;
-        p[2] = c.r;
-    }
-};
+char console_buf[sizeof(Console)];
+Console *console;
 
 char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
 PixelWriter *pixel_writer;
+
+int printk(const char *format, ...)
+{
+    va_list ap;
+    int result;
+    char s[1024];
+    va_start(ap, format);
+    result = vsprintf(s, format, ap);
+    va_end(ap);
+
+    console->PutString(s);
+    return result;
+}
 
 extern "C" void
 KernelMain(const FrameBufferConfig &frame_buffer_config)
@@ -95,6 +64,23 @@ KernelMain(const FrameBufferConfig &frame_buffer_config)
         {
             pixel_writer->Write(100 + x, 100 + y, {0, 255, 0});
         }
+    }
+
+    for (int i = 0; i < 100; i += 8)
+    {
+        WriteAscii(*pixel_writer, 50 + i, 50, 'A' + i, {0, 0, 0});
+    }
+
+    // WriteAscii(*pixel_writer, 58, 50, 'a', {0, 0, 0});
+    WriteString(*pixel_writer, 100, 66, "Hello World!", {0, 0, 255});
+    char buf[128];
+    sprintf(buf, "1+2=%d", 1 + 2);
+    WriteString(*pixel_writer, 100, 300, buf, {0, 0, 255});
+    console = new (console_buf) Console{*pixel_writer, {0, 0, 0}, {255, 255, 255}};
+
+    for (int i = 0; i < 16; i++)
+    {
+        printk("printk%d\n", i);
     }
 
     while (1)
