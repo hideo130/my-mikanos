@@ -1,3 +1,5 @@
 disk.img
 *.o
 kernel.elf
+*.d
+*.bin
