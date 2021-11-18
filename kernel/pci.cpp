@@ -33,18 +33,22 @@ namespace
 
     Error ScanBus(uint8_t bus);
 
-    Error ScanBus(uint8_t bus)
+    Error ScanFunction(uint8_t bus, uint8_t device, uint8_t function)
     {
-        for (uint8_t device = 0; device < 32; device++)
+        auto class_code = ReadClassCode(bus, device, function);
+        auto header_type = ReadHeaderType(bus, device, function);
+        Device dev{bus, device, function, header_type, class_code};
+        if (auto err = AddDevice(dev))
         {
-            if (ReadVendorId(bus, device, 0) == 0xffffu)
-            {
-                continue;
-            }
-            if (auto err = ScanDevice(bus, device))
-            {
-                return err;
-            }
+            return err;
+        }
+
+        if (class_code.Match(0x06u, 0x04u))
+        {
+            // standard PCI-PCI pridge
+            auto bus_numbers = ReadBusNumbers(bus, device, function);
+            uint8_t secondary_bus = (bus_numbers >> 8) & 0xffu;
+            return ScanBus(secondary_bus);
         }
         return MAKE_ERROR(Error::kSuccess);
     }
@@ -74,22 +78,18 @@ namespace
         return MAKE_ERROR(Error::kSuccess);
     }
 
-    Error ScanFunction(uint8_t bus, uint8_t device, uint8_t function)
+    Error ScanBus(uint8_t bus)
     {
-        auto class_code = ReadClassCode(bus, device, function);
-        auto header_type = ReadHeaderType(bus, device, function);
-        Device dev{bus, device, function, header_type, class_code};
-        if (auto err = AddDevice(dev))
+        for (uint8_t device = 0; device < 32; device++)
         {
-            return err;
-        }
-
-        if (class_code.Match(0x06u, 0x04u))
-        {
-            // standard PCI-PCI pridge
-            auto bus_numbers = ReadBusNumbers(bus, device, function);
-            uint8_t secondary_bus = (bus_numbers >> 8) & 0xffu;
-            return ScanBus(secondary_bus);
+            if (ReadVendorId(bus, device, 0) == 0xffffu)
+            {
+                continue;
+            }
+            if (auto err = ScanDevice(bus, device))
+            {
+                return err;
+            }
         }
         return MAKE_ERROR(Error::kSuccess);
     }
@@ -143,6 +143,11 @@ namespace pci
     bool IsSingleFunctionDevice(uint8_t header_type)
     {
         return (header_type & 0x80u) == 0;
+    }
+
+    uint32_t ReadBusNumbers(uint8_t bus, uint8_t device, uint8_t function){
+        WriteAddress(MakeAddress(bus, device, function, 0x18));
+        return ReadData();
     }
 
     Error ScanAllBus()

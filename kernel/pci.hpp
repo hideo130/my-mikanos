@@ -55,9 +55,6 @@ namespace pci
     inline int num_device;
 
     Error ScanAllBus();
-    Error ScanFunction(uint8_t bus, uint8_t device, uint8_t function);
-    Error ScanDevice(uint8_t bus, uint8_t device);
-    Error ScanBus(uint8_t bus);
     
     constexpr uint8_t CalcBarAddress(unsigned int bar_index)
     {

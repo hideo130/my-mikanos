@@ -106,7 +106,7 @@ KernelMain(const FrameBufferConfig &frame_buffer_config)
     int kFrameWidth = frame_buffer_config.horizontal_resolution;
     int kFrameHeight = frame_buffer_config.vertical_resolution;
 
-    // FillRectangle(*pixel_writer, {0, 0}, {kFrameWidth, kFrameHeight - 50}, kDesktopBGColor);
+    FillRectangle(*pixel_writer, {0, 0}, {kFrameWidth, kFrameHeight - 50}, kDesktopBGColor);
     FillRectangle(*pixel_writer, {kFrameWidth, kFrameHeight - 50}, {kFrameWidth, 50}, {1, 8, 17});
     FillRectangle(*pixel_writer, {0, kFrameHeight - 50}, {kFrameWidth / 5, 50}, {80, 80, 80});
     DrawRectangle(*pixel_writer, {10, kFrameHeight - 40}, {30, 30}, {160, 160, 160});
