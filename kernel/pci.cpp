@@ -131,7 +131,7 @@ namespace pci
 
     ClassCode ReadClassCode(uint8_t bus, uint8_t device, uint8_t function)
     {
-        WriteAddress(MakeAddress(bus, device, function, 0x18));
+        WriteAddress(MakeAddress(bus, device, function, 0x08));
         auto reg = ReadData();
         ClassCode cc;
         cc.base = (reg >> 24) & 0xffu;
@@ -161,7 +161,7 @@ namespace pci
             return ScanBus(0);
         }
 
-        for (uint8_t function = 1; function < 8; function++)
+        for (uint8_t function = 0; function < 8; function++)
         {
             if (ReadVendorId(0, 0, function) == 0xffffu)
             {

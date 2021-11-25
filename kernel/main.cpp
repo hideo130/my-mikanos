@@ -142,6 +142,10 @@ KernelMain(const FrameBufferConfig &frame_buffer_config)
     //     printk("printk%d\n", i);
     // }
 
+    mouse_cursor = new (mouse_cursor_buf) MouseCursor{
+        pixel_writer, kDesktopBGColor, {300,200}
+    };
+
     auto err = pci::ScanAllBus();
     Log(kDebug, "ScanAllBus:%s\n", err.Name());
     
@@ -169,7 +173,7 @@ KernelMain(const FrameBufferConfig &frame_buffer_config)
     }
     if (xhc_dev)
     {
-        Log(kInfo, "xhC has been found: %d.%d.%d\n", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
+        Log(kInfo, "xHC has been found: %d.%d.%d\n", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
     }
 
     const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);

@@ -57,7 +57,7 @@ namespace
             {
                 if (mouse_cursor_shape[dy][dx] != ' ')
                 {
-                    pixel_writer->Write(position.x + dx, position.y, erase_color);
+                    pixel_writer->Write(position.x + dx, position.y + dy, erase_color);
                 }
             }
         }
