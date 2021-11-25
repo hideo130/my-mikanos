@@ -23,7 +23,7 @@ void FillRectangle(PixelWriter &writer, const Vector2D<int> &pos,
     {
         for (int dx = 0; dx < size.x; dx++)
         {
-            writer.Write(pos.x + dx, pos.y + dy + dy, c);
+            writer.Write(pos.x + dx, pos.y + dy, c);
         }
     }
 }
@@ -35,7 +35,7 @@ void DrawRectangle(PixelWriter &writer, const Vector2D<int> &pos,
     {
         // write width edge
         writer.Write(pos.x + dx, pos.y, c);
-        writer.Write(pos.x + dx, pos.y * size.y - 1, c);
+        writer.Write(pos.x + dx, pos.y + size.y - 1, c);
     }
 
     for (int dy = 1; dy < size.y - 1; dy++)
