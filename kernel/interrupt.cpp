@@ -9,3 +9,14 @@ void NotifyEndOfInterrupt()
 }
 
 std::array<InterruptDescriptor, 256> idt;
+
+void SetIDTEntry(InterruptDescriptor &desc, InterruptDescriptorAttribute attr,
+                 uint64_t offset, uint16_t segment_selector)
+{
+    desc.attr = attr;
+    desc.offser_low = offset & 0xffffu;
+    desc.offset_middle = (offset >> 16) & 0xffffu;
+    desc.offset_high = offset >> 32;
+    desc.segment_selector = segment_selector;
+}
+

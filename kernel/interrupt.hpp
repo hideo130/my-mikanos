@@ -1,15 +1,19 @@
+# pragma once
+
 #include <cstdint>
 
-enum class DescriptorType {
-  kUpper8Bytes   = 0,
-  kLDT           = 2,
-  kTSSAvailable  = 9,
-  kTSSBusy       = 11,
-  kCallGate      = 12,
-  kInterruptGate = 14,
-  kTrapGate      = 15,
+// DescriptorType fileld is 4 bit.
+// So maximum value is 15.
+enum class DescriptorType
+{
+    kUpper8Bytes = 0,
+    kLDT = 2,
+    kTSSAvailable = 9,
+    kTSSBusy = 11,
+    kCallGate = 12,
+    kInterruptGate = 14,
+    kTrapGate = 15,
 };
-
 
 union InterruptDescriptorAttribute
 {
@@ -34,3 +38,41 @@ struct InterruptDescriptor
     uint32_t offset_high;
     uint32_t reserved;
 } __attribute__((packed));
+
+extern std::array<InterruptDescriptor, 256> idt;
+
+constexpr InterruptDescriptorAttribute MakeIDTAttr(
+    DescriptorType type,
+    uint8_t descriptor_privilege_level,
+    bool present = true,
+    uint8_t interrupt_stack_table = 0)
+{
+    InterruptDescriptorAttribute attr{};
+    attr.bits.interrupt_stack_table = interrupt_stack_table;
+    attr.bits.type = type;
+    attr.bits.present = present;
+    return attr;
+}
+
+void SetIDTEntry(InterruptDescriptor &desc, InterruptDescriptorAttribute attr,
+                 uint64_t offset, uint16_t segment_selector);
+
+class InterruptVector
+{
+public:
+    enum Number
+    {
+        kXHCI = 0x40,
+    };
+};
+
+struct InterruptFrame
+{
+    uint64_t rip;
+    uint64_t cs;
+    uint64_t rflags;
+    uint64_t rsp;
+    uint64_t ss;
+};
+
+void NotifyEndOfInterrupt();

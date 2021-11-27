@@ -19,6 +19,8 @@ void SetLogLevel(LogLevel level)
 
 int Log(LogLevel level, const char *format, ...)
 {
+    // console->PutString("hoge\n");
+
     if (level >= log_level)
     {
         return 0;
@@ -27,6 +29,7 @@ int Log(LogLevel level, const char *format, ...)
     va_list ap;
     int result;
     char s[1024];
+    console->PutString("hoge\n");
 
     va_start(ap, format);
     result = vsprintf(s, format, ap);

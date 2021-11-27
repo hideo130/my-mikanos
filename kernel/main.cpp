@@ -5,8 +5,10 @@
 #include <numeric>
 #include <vector>
 
+#include "asmfunc.h"
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
+#include "interrupt.hpp"
 #include "mouse.hpp"
 #include "font.hpp"
 #include "console.hpp"
@@ -78,8 +80,25 @@ void MouseObserver(int8_t displacement_x, int8_t displacement_y)
     mouse_cursor->MoveRelative({displacement_x, displacement_y});
 }
 
-extern "C" void __cxa_pure_virtual() {
-  while (1) __asm__("hlt");
+extern "C" void __cxa_pure_virtual()
+{
+    while (1)
+        __asm__("hlt");
+}
+
+usb::xhci::Controller *xhc;
+
+__attribute__((interrupt)) void IntHandlerXHCI(InterruptFrame *frame)
+{
+    while (xhc->PrimaryEventRing()->HasFront())
+    {
+        if (auto err = ProcessEvent(*xhc))
+        {
+            Log(kError, "Error while ProcessEvent :%s at %s:%d\n",
+                err.Name(), err.File(), err.Line());
+        }
+    }
+    NotifyEndOfInterrupt();
 }
 
 extern "C" void
@@ -137,26 +156,20 @@ KernelMain(const FrameBufferConfig &frame_buffer_config)
     printk("Welcom to MyMikcanos!\n");
     SetLogLevel(kInfo);
 
-    // for (int i = 0; i < 16; i++)
-    // {
-    //     printk("printk%d\n", i);
-    // }
-
     mouse_cursor = new (mouse_cursor_buf) MouseCursor{
-        pixel_writer, kDesktopBGColor, {300,200}
-    };
+        pixel_writer, kDesktopBGColor, {300, 200}};
 
     auto err = pci::ScanAllBus();
-    Log(kDebug, "ScanAllBus:%s\n", err.Name());
-    
+    printk("%d\n", Log(kInfo, "ScanAllBus: %s\n", err.Name()));
+    printk("ScanAllBus: %s\n", err.Name());
     for (int i = 0; i < pci::num_device; i++)
     {
         const auto &dev = pci::devices[i];
         auto vendor_id = pci::ReadVendorId(dev);
         auto class_code = pci::ReadClassCode(dev.bus, dev.device, dev.function);
         Log(kDebug, "%d.%d.%d: vend %04x, class %08x, head %02x\n",
-               dev.bus, dev.device, dev.function,
-               vendor_id, class_code, dev.header_type);
+            dev.bus, dev.device, dev.function,
+            vendor_id, class_code, dev.header_type);
     }
 
     pci::Device *xhc_dev = nullptr;
@@ -215,6 +228,17 @@ KernelMain(const FrameBufferConfig &frame_buffer_config)
     mouse_cursor = new (mouse_cursor_buf) MouseCursor{
         pixel_writer, kDesktopBGColor, {300, 200}};
 
+    const uint16_t cs = GetCS();
+    SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
+                reinterpret_cast<uint64_t>(IntHandlerXHCI), cs);
+    LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
+
+    const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t *>(0xfee00020) >> 24;
+    pci::ConfigureMSIFixedDestination(
+        *xhc_dev, bsp_local_apic_id,
+        pci::MSITriggerMode::kLevel, pci::MSIDeliveryMode::kFixed,
+        InterruptVector::kXHCI, 0);
+    
     while (1)
     {
         if (auto err = ProcessEvent(xhc))
