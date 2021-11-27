@@ -35,3 +35,34 @@ LoadIDT:
     mov rsp, rbp
     pop rbp
     ret
+
+extern kernel_main_stack
+extern KernelMainNewStack
+
+global KernelMain:
+    mov rsp, kernel_main_stack + 1024*1024
+    call KernelMainNewStack
+.fin:
+    hlt
+    jmp .fin
+
+global LoadGDT ; void LoadGDT(uint16_t limit, uint64_t offset);
+LoadGDT:
+    push rbp
+    mov rbp, rsp
+    sub rsp, 10
+    mov [rsp], di ; limit
+    mov [rsp + 2], rsi ; offset
+    lgdt [rsp]
+    mov rsp, rbp
+    pop rbp
+    ret
+
+global SetDSAll ; void SetDSAll(uint16_t value);
+SetDSAll:
+    mov ds, di
+    mov es, di
+    mov fs, di
+    mov gs, di
+    ret
+

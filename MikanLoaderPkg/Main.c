@@ -11,16 +11,7 @@
 #include <Guid/FileInfo.h>
 #include "frame_buffer_config.hpp"
 #include "elf.hpp"
-
-struct MemoryMap
-{
-  UINTN buffer_size;
-  VOID *buffer;
-  UINTN map_size;
-  UINTN map_key;
-  UINTN descriptor_size;
-  UINT32 descriptor_version;
-};
+#include "memory_map.hpp"
 
 EFI_STATUS GetMemoryMap(struct MemoryMap *map)
 {
@@ -220,6 +211,15 @@ void CopyLoadSegments(Elf64_Ehdr *ehdr)
   }
 }
 
+/**
+ * @brief UEFI application
+ * start from this function
+ * 
+ * @param image_handle UEFI bios set this parameter
+ * @param system_table UEFI bios set this parameter
+ * @return EFI_STATUS 
+ */
+
 EFI_STATUS EFIAPI UefiMain(
     EFI_HANDLE image_handle,
     EFI_SYSTEM_TABLE *system_table)
@@ -298,7 +298,7 @@ EFI_STATUS EFIAPI UefiMain(
   status = root_dir->Open(
       root_dir, &kernel_file, L"\\kernel.elf",
       EFI_FILE_MODE_READ, 0);
-  if (EFIF_ERROR(status))
+  if (EFI_ERROR(status))
   {
     Print(L"failed to open file '\\kernel.elf': %r\n", status);
     Halt();
@@ -319,11 +319,11 @@ EFI_STATUS EFIAPI UefiMain(
   EFI_FILE_INFO *file_info = (EFI_FILE_INFO *)file_info_buffer;
   UINTN kernel_file_size = file_info->FileSize;
 
-  EFI_STATUS status;
   VOID *kernel_buffer;
   // AllocatePool allocates memory in bytes instead of pages.
   // We don't have to specify memory location only because we load kernel file to temporary resion
   // If allocation succeed, kernel_buffer points start address
+  // First argument is memory region type and we usually spicify EfiLoaderDta for boot loader.
   status = gBS->AllocatePool(EfiLoaderData, kernel_file_size, &kernel_buffer);
   if (EFI_ERROR(status))
   {
@@ -343,6 +343,8 @@ EFI_STATUS EFIAPI UefiMain(
   UINT64 kernel_first_addr, kernel_last_addr;
   CalcLoadAddressRange(kernel_ehdr, &kernel_first_addr, &kernel_last_addr);
 
+  // page unit of UEFI is 4KiB=0x1000
+  // to round up we add 0xfff.
   UINTN num_pages = (kernel_last_addr - kernel_first_addr + 0xfff) / 0x1000;
 
   status = gBS->AllocatePages(
@@ -410,9 +412,10 @@ EFI_STATUS EFIAPI UefiMain(
     Halt();
   }
 
-  typedef void __attribute__((sysv_abi)) EntryPointType(const struct FrameBufferConfig *);
+  typedef void __attribute__((sysv_abi)) EntryPointType(const struct FrameBufferConfig *,
+                                                        const struct MemoryMap *);
   EntryPointType *entry_point = (EntryPointType *)entry_addr;
-  entry_point(&config);
+  entry_point(&config, &memmap);
   // #@@range_end(call_kernel)
 
   Print(L"All done\n");
