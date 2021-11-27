@@ -10,6 +10,7 @@
 #include "graphics.hpp"
 #include "interrupt.hpp"
 #include "mouse.hpp"
+#include "queue.hpp"
 #include "font.hpp"
 #include "console.hpp"
 #include "pci.hpp"
@@ -87,17 +88,19 @@ extern "C" void __cxa_pure_virtual()
 }
 
 usb::xhci::Controller *xhc;
+struct Message
+{
+    enum Type
+    {
+        kInterruptXHCI,
+    } type;
+};
+
+ArrayQueue<Message> *main_queue;
 
 __attribute__((interrupt)) void IntHandlerXHCI(InterruptFrame *frame)
 {
-    while (xhc->PrimaryEventRing()->HasFront())
-    {
-        if (auto err = ProcessEvent(*xhc))
-        {
-            Log(kError, "Error while ProcessEvent :%s at %s:%d\n",
-                err.Name(), err.File(), err.Line());
-        }
-    }
+    main_queue->Push(Message{Message::kInterruptXHCI});
     NotifyEndOfInterrupt();
 }
 
@@ -238,17 +241,33 @@ KernelMain(const FrameBufferConfig &frame_buffer_config)
         *xhc_dev, bsp_local_apic_id,
         pci::MSITriggerMode::kLevel, pci::MSIDeliveryMode::kFixed,
         InterruptVector::kXHCI, 0);
-    
-    while (1)
-    {
-        if (auto err = ProcessEvent(xhc))
-        {
-            Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
-        }
-    }
 
     while (1)
     {
-        __asm__("hlt");
+        __asm__("cli");
+        if (main_queue->Count() == 0)
+        {
+            __asm__("sti\n\thlt");
+            continue;
+        }
+
+        Message msg = main_queue->Front();
+        main_queue->Pop();
+        __asm__("sti");
+
+        switch (msg.type)
+        {
+        case Message::kInterruptXHCI:
+            while (xhc.PrimaryEventRing()->HasFront())
+            {
+                if (auto err = ProcessEvent(xhc))
+                {
+                    Log(kError, "Error while ProcessEvent: %s at %s:%d\n", err.Name(), err.File(), err.Line());
+                }
+            }
+            break;
+        default:
+            Log(kError, "Unknown message type: %d\n", msg.type);
+        }
     }
 }
