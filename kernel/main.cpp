@@ -10,6 +10,7 @@
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
 #include "interrupt.hpp"
+#include "memory_manager.hpp"
 #include "memory_map.hpp"
 #include "mouse.hpp"
 #include "queue.hpp"
@@ -84,6 +85,9 @@ void MouseObserver(int8_t displacement_x, int8_t displacement_y)
 {
     mouse_cursor->MoveRelative({displacement_x, displacement_y});
 }
+
+char memory_manager_buf[sizeof(BitmapMemoryManager)];
+BitmapMemoryManager* memory_manager;
 
 extern "C" void __cxa_pure_virtual()
 {
@@ -179,33 +183,52 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
 
     SetupIdentityPageTable();
 
+    ::memory_manager = new (memory_manager_buf) BitmapMemoryManager;
 
     printk("memory_map: %p\n", &memory_map);
     const auto memory_map_base = reinterpret_cast<uintptr_t>(memory_map.buffer);
+    uintptr_t available_end = 0;
     for (uintptr_t iter = memory_map_base;
          iter < memory_map_base + memory_map.map_size;
          iter += memory_map.descriptor_size)
     {
         auto desc = reinterpret_cast<MemoryDescriptor *>(iter);
+        if (available_end < desc->physical_start)
+        {
+            memory_manager->MarkAllocated(
+                FrameID{available_end / kBytesPerFrame},
+                (desc->physical_start - available_end) / kBytesPerFrame);
+            Log(kDebug, "type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n",
+                desc->type,
+                desc->physical_start,
+                desc->physical_start + desc->number_of_pages * 4096 - 1,
+                desc->number_of_pages,
+                desc->attribute);
+        }
+        const auto physical_end =
+            desc->physical_start + desc->number_of_pages * kUEFIPageSize;
         if (IsAvailable(static_cast<MemoryType>(desc->type)))
         {
-            Log(kDebug,"type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n",
-                   desc->type,
-                   desc->physical_start,
-                   desc->physical_start + desc->number_of_pages * 4096 - 1,
-                   desc->number_of_pages,
-                   desc->attribute);
+            available_end = physical_end;
+        }
+        else
+        {
+            memory_manager->MarkAllocated(
+                FrameID{desc->physical_start / kBytesPerFrame},
+                desc->number_of_pages * kUEFIPageSize / kBytesPerFrame);
         }
     }
+    memory_manager->SetMemoryRange(FrameID{1}, FrameID{available_end / kBytesPerFrame});
+
 
     mouse_cursor = new (mouse_cursor_buf) MouseCursor{
         pixel_writer, kDesktopBGColor, {300, 200}};
 
-    std::array<Message, 32>main_queue_data;
-    ArrayQueue<Message>main_queue{main_queue_data};
+    std::array<Message, 32> main_queue_data;
+    ArrayQueue<Message> main_queue{main_queue_data};
     ::main_queue = &main_queue;
 
-    auto err = pci::ScanAllBus();    
+    auto err = pci::ScanAllBus();
     Log(kDebug, "ScanAllBus: %s\n", err.Name());
     for (int i = 0; i < pci::num_device; i++)
     {
