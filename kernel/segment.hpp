@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include "x86_descriptor.hpp"
 
 union SegmentDescriptor
 {
@@ -23,3 +24,5 @@ union SegmentDescriptor
         uint64_t base_hight : 8;
     } __attribute__((packed)) bits;
 } __attribute__((packed));
+
+void SetupSegments();

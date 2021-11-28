@@ -1,19 +1,9 @@
 # pragma once
 
+#include <array>
 #include <cstdint>
 
-// DescriptorType fileld is 4 bit.
-// So maximum value is 15.
-enum class DescriptorType
-{
-    kUpper8Bytes = 0,
-    kLDT = 2,
-    kTSSAvailable = 9,
-    kTSSBusy = 11,
-    kCallGate = 12,
-    kInterruptGate = 14,
-    kTrapGate = 15,
-};
+#include "x86_descriptor.hpp"
 
 union InterruptDescriptorAttribute
 {

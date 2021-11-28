@@ -38,9 +38,11 @@ template <typename T>
 ArrayQueue<T>::ArrayQueue(T *buf, size_t size)
     : data_{buf}, read_pos_{0}, write_pos_{0}, count_{0}, capacity_{size} {}
 
-template<typename T>
-Error ArrayQueue<T>::Push(const T& value){
-    if(count_== capacity_){
+template <typename T>
+Error ArrayQueue<T>::Push(const T &value)
+{
+    if (count_ == capacity_)
+    {
         return MAKE_ERROR(Error::kFull);
     }
 
@@ -50,20 +52,34 @@ Error ArrayQueue<T>::Push(const T& value){
 
     return MAKE_ERROR(Error::kSuccess);
 }
-template<typename T>
-Error ArrayQueue<T>::Pop(){
-    if(count_ == 0){
-        return MAKE_ERROR(Error::kEmpty)
+template <typename T>
+Error ArrayQueue<T>::Pop()
+{
+    if (count_ == 0)
+    {
+        return MAKE_ERROR(Error::kEmpty);
     }
 
     count_--;
     read_pos_ = ++read_pos_ % capacity_;
-    
+
     return MAKE_ERROR(Error::kSuccess);
 }
 
-template<typename T>
-const T& ArrayQueue<T>::Front()const {
-    return data_[read_pos_];
+template <typename T>
+size_t ArrayQueue<T>::Count() const
+{
+    return count_;
 }
 
+template <typename T>
+size_t ArrayQueue<T>::Capacity() const
+{
+    return capacity_;
+}
+
+template <typename T>
+const T &ArrayQueue<T>::Front() const
+{
+    return data_[read_pos_];
+}

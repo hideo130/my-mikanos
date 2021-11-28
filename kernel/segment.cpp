@@ -1,4 +1,10 @@
 #include "segment.hpp"
+#include "asmfunc.h"
+
+namespace
+{
+    std::array<SegmentDescriptor, 3> gdt;
+}
 
 void SetCodeSegment(SegmentDescriptor &desc,
                     DescriptorType type,
@@ -34,7 +40,10 @@ void SetDataSegment(SegmentDescriptor &desc,
     desc.bits.default_operation_size = 1; // 32-bits stack segment
 }
 
-void SetupSegments(){
+void SetupSegments()
+{
     gdt[0].data = 0;
-    SetCodeSegment(gdt[1]);
+    SetCodeSegment(gdt[1], DescriptorType::kExecuteRead, 0, 0, 0xfffff);
+    SetCodeSegment(gdt[2], DescriptorType::kReadWrite, 0, 0, 0xfffff);
+    LoadGDT(sizeof(gdt) -1, reinterpret_cast<uintptr_t>(&gdt[0]));
 }

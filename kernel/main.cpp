@@ -13,8 +13,10 @@
 #include "memory_map.hpp"
 #include "mouse.hpp"
 #include "queue.hpp"
+#include "segment.hpp"
 #include "font.hpp"
 #include "console.hpp"
+#include "paging.hpp"
 #include "pci.hpp"
 #include "logger.hpp"
 #include "usb/memory.hpp"
@@ -165,39 +167,46 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     console = new (console_buf) Console{*pixel_writer, kDesktopFGColor, kDesktopBGColor};
 
     printk("Welcom to MyMikcanos!\n");
-    SetLogLevel(kInfo);
+    SetLogLevel(kError);
 
-    const std::array available_memory_types{
-        MemoryType::kEfiBootServicesCode,
-        MemoryType::kEfiBootServicesData,
-        MemoryType::kEfiConventionalMemory,
-    };
+
+    // configure segment
+    SetupSegments();
+    const uint16_t kernel_cs = 1 << 3;
+    const uint16_t kernel_ss = 2 << 3;
+    SetDSAll(0);
+    SetCSSS(kernel_cs, kernel_ss);
+
+    SetupIdentityPageTable();
+
 
     printk("memory_map: %p\n", &memory_map);
-    for (uintptr_t iter = reinterpret_cast<uintptr_t>(memory_map.buffer);
-         iter < reinterpret_cast<uintptr_t>(memory_map.buffer) + memory_map.map_size;
+    const auto memory_map_base = reinterpret_cast<uintptr_t>(memory_map.buffer);
+    for (uintptr_t iter = memory_map_base;
+         iter < memory_map_base + memory_map.map_size;
          iter += memory_map.descriptor_size)
     {
         auto desc = reinterpret_cast<MemoryDescriptor *>(iter);
-        for (int i = 0; i < available_memory_types.size(); i++)
+        if (IsAvailable(static_cast<MemoryType>(desc->type)))
         {
-            if (desc->type == available_memory_types[i])
-            {
-                printk("type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n",
-                       desc->type,
-                       desc->physical_start,
-                       desc->physical_start + desc->number_of_pages * 4096 - 1,
-                       desc->attribute);
-            }
+            Log(kDebug,"type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n",
+                   desc->type,
+                   desc->physical_start,
+                   desc->physical_start + desc->number_of_pages * 4096 - 1,
+                   desc->number_of_pages,
+                   desc->attribute);
         }
     }
 
     mouse_cursor = new (mouse_cursor_buf) MouseCursor{
         pixel_writer, kDesktopBGColor, {300, 200}};
 
-    auto err = pci::ScanAllBus();
-    printk("%d\n", Log(kInfo, "ScanAllBus: %s\n", err.Name()));
-    printk("ScanAllBus: %s\n", err.Name());
+    std::array<Message, 32>main_queue_data;
+    ArrayQueue<Message>main_queue{main_queue_data};
+    ::main_queue = &main_queue;
+
+    auto err = pci::ScanAllBus();    
+    Log(kDebug, "ScanAllBus: %s\n", err.Name());
     for (int i = 0; i < pci::num_device; i++)
     {
         const auto &dev = pci::devices[i];
@@ -224,6 +233,17 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     {
         Log(kInfo, "xHC has been found: %d.%d.%d\n", xhc_dev->bus, xhc_dev->device, xhc_dev->function);
     }
+
+    SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
+                reinterpret_cast<uint64_t>(IntHandlerXHCI), kernel_cs);
+    LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
+
+    const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t *>(0xfee00020) >> 24;
+    pci::ConfigureMSIFixedDestination(
+        *xhc_dev, bsp_local_apic_id,
+        pci::MSITriggerMode::kLevel, pci::MSIDeliveryMode::kFixed,
+        InterruptVector::kXHCI, 0);
+
 
     const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
     Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
@@ -261,31 +281,18 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
         }
     }
 
-    mouse_cursor = new (mouse_cursor_buf) MouseCursor{
-        pixel_writer, kDesktopBGColor, {300, 200}};
-
-    const uint16_t cs = GetCS();
-    SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
-                reinterpret_cast<uint64_t>(IntHandlerXHCI), cs);
-    LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
-
-    const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t *>(0xfee00020) >> 24;
-    pci::ConfigureMSIFixedDestination(
-        *xhc_dev, bsp_local_apic_id,
-        pci::MSITriggerMode::kLevel, pci::MSIDeliveryMode::kFixed,
-        InterruptVector::kXHCI, 0);
 
     while (1)
     {
         __asm__("cli");
-        if (main_queue->Count() == 0)
+        if (main_queue.Count() == 0)
         {
             __asm__("sti\n\thlt");
             continue;
         }
 
-        Message msg = main_queue->Front();
-        main_queue->Pop();
+        Message msg = main_queue.Front();
+        main_queue.Pop();
         __asm__("sti");
 
         switch (msg.type)
