@@ -87,7 +87,7 @@ void MouseObserver(int8_t displacement_x, int8_t displacement_y)
 }
 
 char memory_manager_buf[sizeof(BitmapMemoryManager)];
-BitmapMemoryManager* memory_manager;
+BitmapMemoryManager *memory_manager;
 
 extern "C" void __cxa_pure_virtual()
 {
@@ -173,7 +173,6 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     printk("Welcom to MyMikcanos!\n");
     SetLogLevel(kError);
 
-
     // configure segment
     SetupSegments();
     const uint16_t kernel_cs = 1 << 3;
@@ -220,6 +219,12 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     }
     memory_manager->SetMemoryRange(FrameID{1}, FrameID{available_end / kBytesPerFrame});
 
+    if (auto err = InitializeHeap(*memory_manager))
+    {
+        Log(kError, "failed to allocated pages: %s at %s:%d\n",
+            err.Name(), err.File(), err.Line());
+        exit(1);
+    }
 
     mouse_cursor = new (mouse_cursor_buf) MouseCursor{
         pixel_writer, kDesktopBGColor, {300, 200}};
@@ -267,7 +272,6 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
         pci::MSITriggerMode::kLevel, pci::MSIDeliveryMode::kFixed,
         InterruptVector::kXHCI, 0);
 
-
     const WithError<uint64_t> xhc_bar = pci::ReadBar(*xhc_dev, 0);
     Log(kDebug, "ReadBar: %s\n", xhc_bar.error.Name());
     const uint64_t xhc_mmio_base = xhc_bar.value & ~static_cast<uint64_t>(0xf);
@@ -303,7 +307,6 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
             }
         }
     }
-
 
     while (1)
     {

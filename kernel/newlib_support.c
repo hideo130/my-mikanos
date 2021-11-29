@@ -9,10 +9,20 @@ void _exit(void)
     }
 }
 
+caddr_t program_break, program_break_end;
+
 caddr_t sbrk(int incr)
 {
-    errno = ENOMEM;
-    return (caddr_t)-1;
+    // if program_break is not initialized, then program_break is 0.
+    // if so return error.
+    if (program_break == 0 || program_break + incr >= program_break)
+    {
+        errno = ENOMEM;
+        return (caddr_t)-1;
+    }
+    caddr_t prev_break = program_break;
+    program_break += incr;
+    return prev_break;
 }
 
 int getpid(void)
