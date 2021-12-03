@@ -41,3 +41,28 @@ void Window::SetTransparentColor(std::optional<PixelColor> c)
 {
     transparent_color_ = c;
 }
+
+Window::WindowWriter* Window::Writer(){
+    return &writer_;
+}
+
+PixelColor &Window::At(int x, int y)
+{
+    return data_[y][x];
+}
+
+const PixelColor &Window::At(int x, int y) const
+{
+    return data_[y][x];
+}
+
+int Window::Width() const
+{
+    return width_;
+}
+
+int Window::Height() const
+{
+    return height_;
+}
+

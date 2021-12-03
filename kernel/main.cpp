@@ -260,6 +260,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
 
     Log(kInfo, "xHC starting\n");
     xhc.Run();
+    ::xhc = &xhc;
 
     usb::HIDMouseDriver::default_observer = MouseObserver;
 

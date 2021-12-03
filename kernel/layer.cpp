@@ -1,5 +1,7 @@
 #include "layer.hpp"
 
+Layer::Layer(unsigned int id) : id_{id} {}
+
 Layer &Layer::Move(Vector2D<int> pos)
 {
     pos_ = pos;
@@ -18,6 +20,17 @@ void Layer::DrawTo(PixelWriter &writer) const
     {
         window_->DrawTo(writer, pos_);
     }
+}
+
+unsigned int Layer::ID() const
+{
+    return id_;
+}
+
+Layer &Layer::SetWindow(const std::shared_ptr<Window> &window)
+{
+    window_ = window;
+    return *this;
 }
 
 Layer &LayerManager::NewLayer()
@@ -48,6 +61,10 @@ void LayerManager::Move(unsigned int id, Vector2D<int> new_position)
 void LayerManager::MoveRelative(unsigned int id, Vector2D<int> pos_diff)
 {
     FindLayer(id)->MoveRelative(pos_diff);
+}
+
+void LayerManager::SetWriter(PixelWriter *writer){
+    writer_ = writer;
 }
 
 void LayerManager::Draw() const
