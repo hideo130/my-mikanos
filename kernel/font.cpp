@@ -37,7 +37,7 @@ void WriteAscii(PixelWriter &writer, int x, int y, char c, const PixelColor &col
         {
             if ((font[dy] << dx) & 0x80u)
             {
-                writer.Write(x + dx, y + dy, color);
+                writer.Write(Vector2D<int>{x + dx, y + dy}, color);
             }
         }
     }

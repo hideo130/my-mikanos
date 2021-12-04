@@ -43,7 +43,7 @@ void Console::Newline()
         {
             for (int x = 0; x < 8 * kColumns; x++)
             {
-                writer_->Write(x, y, bg_color_);
+                writer_->Write(Vector2D<int>{x, y}, bg_color_);
             }
         }
         for (int row = 0; row < kRows - 1; row++)

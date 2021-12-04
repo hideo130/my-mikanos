@@ -16,6 +16,7 @@
 #include "mouse.hpp"
 #include "queue.hpp"
 #include "segment.hpp"
+#include "timer.hpp"
 #include "font.hpp"
 #include "console.hpp"
 #include "paging.hpp"
@@ -83,7 +84,11 @@ unsigned int mouse_layer_id;
 void MouseObserver(int8_t displacement_x, int8_t displacement_y)
 {
     layer_manager->MoveRelative(mouse_layer_id, {displacement_x, displacement_y});
+    StartLAPICTimer();
     layer_manager->Draw();
+    auto elapsed = LAPICTimerElapsed();
+    StopLAPICTimer();
+    printk("mouseObserver :elapsed %u\n", elapsed);
 }
 
 char memory_manager_buf[sizeof(BitmapMemoryManager)];
@@ -146,6 +151,8 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
 
     printk("Welcom to MyMikcanos!\n");
     SetLogLevel(kError);
+
+    InitializeLAPICTimer();
 
     // configure segment
     SetupSegments();
@@ -282,20 +289,29 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
 
     const int kFrameWidth = frame_buffer_config.horizontal_resolution;
     const int kFrameHeight = frame_buffer_config.vertical_resolution;
+    const auto kFrameFormat = frame_buffer_config.pixel_format;
 
-    auto bgwindow = std::make_shared<Window>(kFrameWidth, kFrameHeight);
+    // generate two layer
+    auto bgwindow = std::make_shared<Window>(kFrameWidth, kFrameHeight, kFrameFormat);
     auto bgwriter = bgwindow->Writer();
 
     DrawDesktop(*bgwriter);
     console->SetWriter(bgwriter);
 
     auto mouse_window = std::make_shared<Window>(
-        kMouseCursorWidth, kMouseCursorHeight);
+        kMouseCursorWidth, kMouseCursorHeight, kFrameFormat);
     mouse_window->SetTransparentColor(kMouseTransparentColor);
     DrawMouseCursor(mouse_window->Writer(), {0, 0});
 
+    FrameBuffer screen;
+    if (auto err = screen.Initialize(frame_buffer_config))
+    {
+        Log(kError, "failed to initialize frame buffer: %s at %s:%d\n",
+            err.Name(), err.File(), err.Line());
+    }
+
     layer_manager = new LayerManager;
-    layer_manager->SetWriter(pixel_writer);
+    layer_manager->SetWriter(&screen);
 
     auto bglayer_id = layer_manager->NewLayer()
                           .SetWindow(bgwindow)

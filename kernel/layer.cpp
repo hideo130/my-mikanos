@@ -14,7 +14,7 @@ Layer &Layer::MoveRelative(Vector2D<int> pos_diff)
     return *this;
 }
 
-void Layer::DrawTo(PixelWriter &writer) const
+void Layer::DrawTo(FrameBuffer &writer) const
 {
     if (window_)
     {
@@ -63,15 +63,15 @@ void LayerManager::MoveRelative(unsigned int id, Vector2D<int> pos_diff)
     FindLayer(id)->MoveRelative(pos_diff);
 }
 
-void LayerManager::SetWriter(PixelWriter *writer){
-    writer_ = writer;
+void LayerManager::SetWriter(FrameBuffer *screen){
+    screen_ = screen;
 }
 
 void LayerManager::Draw() const
 {
     for (auto layer : layer_stack_)
     {
-        layer->DrawTo(*writer_);
+        layer->DrawTo(*screen_);
     }
 }
 
@@ -103,12 +103,15 @@ void LayerManager::UpDown(unsigned int id, int new_height)
 
     auto new_pos = layer_stack_.begin() + new_height;
 
+    // if layer is not displyed, then layer is not contained layer_stack_
+    // so old_pos indicate end, and we add layer stack to display.
     if (old_pos == layer_stack_.end())
     {
         layer_stack_.insert(new_pos, layer);
         return;
     }
 
+    // porcess when layer is already displayed.
     if (new_pos == layer_stack_.end())
     {
         --new_pos;
