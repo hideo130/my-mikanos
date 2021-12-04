@@ -65,7 +65,7 @@ void BitmapMemoryManager::SetMemoryRange(FrameID range_begin, FrameID range_end)
 bool BitmapMemoryManager::GetBit(FrameID frame) const
 {
     auto line_index = frame.ID() / kBitsPerMapLine;
-    auto bit_index = frame.ID() & kBitsPerMapLine;
+    auto bit_index = frame.ID() % kBitsPerMapLine;
 
     return (alloc_map_[line_index] & (static_cast<MapLineType>(1) << bit_index)) != 0;
 }
@@ -95,6 +95,6 @@ Error InitializeHeap(BitmapMemoryManager &memory_manager)
         return heap_start.error;
     }
     program_break = reinterpret_cast<caddr_t>(heap_start.value.ID() * kBytesPerFrame);
-    program_break_end = program_break_end + kHeapFrames * kBytesPerFrame;
+    program_break_end = program_break + kHeapFrames * kBytesPerFrame;
     return MAKE_ERROR(Error::kSuccess);
 }

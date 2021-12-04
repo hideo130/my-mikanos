@@ -46,13 +46,13 @@ void Console::Newline()
                 writer_->Write(x, y, bg_color_);
             }
         }
+        for (int row = 0; row < kRows - 1; row++)
+        {
+            memcpy(buffer_[row], buffer_[row + 1], kColumns + 1);
+            WriteString(*writer_, 0, 16 * row, buffer_[row], fg_color_);
+        }
+        memset(buffer_[kRows - 1], 0, kColumns + 1);
     }
-    for (int row = 0; row < kRows - 1; row++)
-    {
-        memcpy(buffer_[row], buffer_[row + 1], kColumns + 1);
-        WriteString(*writer_, 0, 16 * row, buffer_[row], fg_color_);
-    }
-    memset(buffer_[kRows - 1], 0, kColumns + 1);
 }
 
 void Console::SetWriter(PixelWriter *writer)

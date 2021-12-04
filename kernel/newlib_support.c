@@ -15,7 +15,7 @@ caddr_t sbrk(int incr)
 {
     // if program_break is not initialized, then program_break is 0.
     // if so return error.
-    if (program_break == 0 || program_break + incr >= program_break)
+    if (program_break == 0 || program_break + incr >= program_break_end)
     {
         errno = ENOMEM;
         return (caddr_t)-1;
