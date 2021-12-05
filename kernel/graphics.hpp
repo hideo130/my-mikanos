@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include "frame_buffer_config.hpp"
 
 struct PixelColor
@@ -34,11 +35,28 @@ struct Vector2D
     }
 };
 
-template< typename U>
-inline Vector2D<U> operator+(const Vector2D<U>l, const Vector2D<U>r){
-    return Vector2D<U>{l.x+r.x, l.y + r.y};
+template <typename U>
+inline Vector2D<U> operator+(const Vector2D<U> l, const Vector2D<U> r)
+{
+    return Vector2D<U>{l.x + r.x, l.y + r.y};
 }
 
+template <typename T>
+Vector2D<T> ElementMax(const Vector2D<T>& lhs, const Vector2D<T>& rhs) {
+  return {std::max(lhs.x, rhs.x), std::max(lhs.y, rhs.y)};
+}
+
+template <typename T>
+Vector2D<T> ElementMin(const Vector2D<T>& lhs, const Vector2D<T>& rhs) {
+  return {std::min(lhs.x, rhs.x), std::min(lhs.y, rhs.y)};
+}
+
+
+template <typename T>
+struct Rectangle
+{
+    Vector2D<T> pos, size;
+};
 
 class PixelWriter
 {
@@ -73,14 +91,14 @@ class RGBResv8BitPerColorPixelWriter : public FrameBufferWriter
 {
 public:
     using FrameBufferWriter::FrameBufferWriter;
-    virtual void Write(Vector2D<int>pos, const PixelColor &c) override;
+    virtual void Write(Vector2D<int> pos, const PixelColor &c) override;
 };
 
 class BGRResv8BitPerColorPixelWriter : public FrameBufferWriter
 {
 public:
     using FrameBufferWriter::FrameBufferWriter;
-    virtual void Write(Vector2D<int>pos, const PixelColor &c) override;
+    virtual void Write(Vector2D<int> pos, const PixelColor &c) override;
 };
 
 void FillRectangle(PixelWriter &writer, const Vector2D<int> &pos,

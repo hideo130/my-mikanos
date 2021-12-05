@@ -23,7 +23,7 @@ Window::Window(int width, int height, PixelFormat shadow_format) : width_{width}
     }
 }
 
-void Window::DrawTo(FrameBuffer& dst, Vector2D<int> position)
+void Window::DrawTo(FrameBuffer &dst, Vector2D<int> position)
 {
     if (!transparent_color_)
     {
@@ -32,7 +32,7 @@ void Window::DrawTo(FrameBuffer& dst, Vector2D<int> position)
     }
 
     const auto tc = transparent_color_.value();
-    auto& writer = dst.Writer();
+    auto &writer = dst.Writer();
     for (int y = 0; y < Height(); y++)
     {
         for (int x = 0; x < Width(); x++)
@@ -46,6 +46,11 @@ void Window::DrawTo(FrameBuffer& dst, Vector2D<int> position)
     }
 }
 
+void Window::Move(Vector2D<int> dst_pos, const Rectangle<int> &src)
+{
+    shadow_buffer_.Move(dst_pos, src);
+}
+
 void Window::SetTransparentColor(std::optional<PixelColor> c)
 {
     transparent_color_ = c;
@@ -56,8 +61,9 @@ Window::WindowWriter *Window::Writer()
     return &writer_;
 }
 
-void Window::Write(Vector2D<int>pos, PixelColor c ){
-    data_[pos.y][pos.x ] =c;
+void Window::Write(Vector2D<int> pos, PixelColor c)
+{
+    data_[pos.y][pos.x] = c;
     shadow_buffer_.Writer().Write(pos, c);
 }
 
@@ -70,7 +76,6 @@ const PixelColor &Window::At(Vector2D<int> pos) const
 {
     return data_[pos.y][pos.x];
 }
-
 
 int Window::Width() const
 {
