@@ -34,7 +34,7 @@ public:
 
     void DrawTo(PixelWriter &writer, Vector2D<int> position);
     void DrawTo(FrameBuffer &screen, Vector2D<int> position);
-    void Move(Vector2D<int> dst_pos, const Rectangle<int>& src);
+    void Move(Vector2D<int> dst_pos, const Rectangle<int> &src);
     void SetTransparentColor(std::optional<PixelColor> c);
     WindowWriter *Writer();
 
@@ -53,3 +53,5 @@ private:
 
     FrameBuffer shadow_buffer_{};
 };
+
+void DrawWindow(PixelWriter &writer, const char *title);

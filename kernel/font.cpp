@@ -14,6 +14,10 @@ const uint8_t *GetFont(char c)
     return &_binary_hankaku_bin_start + index;
 }
 
+void WriteString(PixelWriter &writer, Vector2D<int> pos, const char *s, const PixelColor &color)
+{
+    WriteString(writer, pos.x, pos.y, s, color);
+}
 
 void WriteString(PixelWriter &writer, int x, int y, const char *s, const PixelColor &color)
 {

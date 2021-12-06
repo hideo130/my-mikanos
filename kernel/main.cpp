@@ -53,9 +53,9 @@ int printk(const char *format, ...)
 
     StartLAPICTimer();
     console->PutString(s);
-    auto elapsed = LAPICTimerElapsed();    
+    auto elapsed = LAPICTimerElapsed();
     StopLAPICTimer();
-    sprintf(s, "[%9d]",elapsed);
+    sprintf(s, "[%9d]", elapsed);
     console->PutString(s);
     return result;
 }
@@ -85,10 +85,15 @@ void SwitchEhci2Xhci(const pci::Device &xhc_dev)
 }
 
 unsigned int mouse_layer_id;
+Vector2D<int> screen_size;
+Vector2D<int> mouse_position;
 
 void MouseObserver(int8_t displacement_x, int8_t displacement_y)
 {
-    layer_manager->MoveRelative(mouse_layer_id, {displacement_x, displacement_y});
+    auto newpos = mouse_position + Vector2D<int>{displacement_x, displacement_y};
+    newpos = ElementMin(newpos, screen_size + Vector2D<int>{-1, -1});
+    mouse_position = ElementMax(newpos, {0, 0});
+    layer_manager->Move(mouse_layer_id, mouse_position);
     StartLAPICTimer();
     layer_manager->Draw();
     auto elapsed = LAPICTimerElapsed();
@@ -296,6 +301,9 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     const int kFrameHeight = frame_buffer_config.vertical_resolution;
     const auto kFrameFormat = frame_buffer_config.pixel_format;
 
+    screen_size.x = frame_buffer_config.horizontal_resolution;
+    screen_size.y = frame_buffer_config.vertical_resolution;
+
     // generate two layer
     auto bgwindow = std::make_shared<Window>(kFrameWidth, kFrameHeight, kFrameFormat);
     auto bgwriter = bgwindow->Writer();
@@ -315,6 +323,12 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
             err.Name(), err.File(), err.Line());
     }
 
+    auto main_window = std::make_shared<Window>(
+        160, 52, frame_buffer_config.pixel_format);
+    DrawWindow(*main_window->Writer(), "Hello Window");
+    WriteString(*main_window->Writer(), {24, 28}, "Welcomet to ", {0, 0, 0});
+    WriteString(*main_window->Writer(), {24, 44}, " MikanOS world!", {0, 0, 0});
+
     layer_manager = new LayerManager;
     layer_manager->SetWriter(&screen);
 
@@ -328,12 +342,26 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
                          .Move({200, 200})
                          .ID();
 
+    auto main_window_layer_id = layer_manager->NewLayer()
+                                    .SetWindow(main_window)
+                                    .Move({300, 100})
+                                    .ID();
+
     layer_manager->UpDown(bglayer_id, 0);
     layer_manager->UpDown(mouse_layer_id, 1);
+    layer_manager->UpDown(main_window_layer_id, 1);
     layer_manager->Draw();
+
+    char str[128];
+    unsigned int count = 0;
 
     while (1)
     {
+        ++count;
+        sprintf(str, "%010u", count);
+        FillRectangle(*main_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
+        WriteString(*main_window->Writer(), {24, 28}, str, {0, 0, 0});
+
         __asm__("cli");
         if (main_queue.Count() == 0)
         {
