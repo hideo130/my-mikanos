@@ -39,6 +39,7 @@ public:
     Layer &NewLayer();
 
     void Draw() const;
+    void Draw(const Rectangle<int> &area) const;
 
     /**
      * @brief Move layer position to specify absolute position

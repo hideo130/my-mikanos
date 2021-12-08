@@ -5,7 +5,6 @@
 #include "window.hpp"
 #include "font.hpp"
 
-
 namespace
 {
     const int kCloseButtonWidth = 16;
@@ -124,6 +123,11 @@ int Window::Width() const
 int Window::Height() const
 {
     return height_;
+}
+
+Vector2D<int> Window::Size() const
+{
+    return Vector2D<int>{width_, height_};
 }
 
 void DrawWindow(PixelWriter &writer, const char *title)

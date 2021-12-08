@@ -326,8 +326,8 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     auto main_window = std::make_shared<Window>(
         160, 52, frame_buffer_config.pixel_format);
     DrawWindow(*main_window->Writer(), "Hello Window");
-    WriteString(*main_window->Writer(), {24, 28}, "Welcomet to ", {0, 0, 0});
-    WriteString(*main_window->Writer(), {24, 44}, " MikanOS world!", {0, 0, 0});
+    // WriteString(*main_window->Writer(), {24, 28}, "Welcomet to ", {0, 0, 0});
+    // WriteString(*main_window->Writer(), {24, 44}, " MikanOS world!", {0, 0, 0});
 
     layer_manager = new LayerManager;
     layer_manager->SetWriter(&screen);
@@ -353,7 +353,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     layer_manager->Draw();
 
     char str[128];
-    unsigned int count = 0;
+    unsigned int count = 0;    
 
     while (1)
     {
@@ -361,11 +361,12 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
         sprintf(str, "%010u", count);
         FillRectangle(*main_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
         WriteString(*main_window->Writer(), {24, 28}, str, {0, 0, 0});
+        layer_manager->Draw();
 
         __asm__("cli");
         if (main_queue.Count() == 0)
         {
-            __asm__("sti\n\thlt");
+            __asm__("sti");
             continue;
         }
 

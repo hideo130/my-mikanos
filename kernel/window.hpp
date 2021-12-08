@@ -45,6 +45,8 @@ public:
     int Width() const;
     int Height() const;
 
+    Vector2D<int> Size() const;
+
 private:
     int width_, height_;
     std::vector<std::vector<PixelColor>> data_{};
