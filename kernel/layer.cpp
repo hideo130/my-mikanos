@@ -21,6 +21,13 @@ void Layer::DrawTo(FrameBuffer &writer) const
         window_->DrawTo(writer, pos_);
     }
 }
+void Layer::DrawTo(FrameBuffer &screen, const Rectangle<int> &area) const
+{
+    if (window_)
+    {
+        window_->DrawTo(screen, pos_, area);
+    }
+}
 
 unsigned int Layer::ID() const
 {
@@ -31,6 +38,11 @@ Layer &Layer::SetWindow(const std::shared_ptr<Window> &window)
 {
     window_ = window;
     return *this;
+}
+
+Vector2D<int> Layer::GetPosition() const
+{
+    return pos_;
 }
 
 Layer &LayerManager::NewLayer()
@@ -84,22 +96,25 @@ void LayerManager::Draw(const Rectangle<int> &area) const
     }
 }
 
-void LayerManager::Draw(unsigned int id)const{
+void LayerManager::Draw(unsigned int id) const
+{
     bool draw = false;
-    Rectangle<int>window_area;
+    Rectangle<int> window_area;
     // skip drawing background of window that have spicified id
-    for(auto layer: layer_stack_){
-        if(layer->ID() == id){
+    for (auto layer : layer_stack_)
+    {
+        if (layer->ID() == id)
+        {
             window_area.size = layer->GetWindow()->Size();
             window_area.pos = layer->GetPosition();
             draw = true;
         }
-        if(draw){
+        if (draw)
+        {
             layer->DrawTo(*screen_, window_area);
         }
     }
 }
-
 
 void LayerManager::Hide(unsigned int id)
 {

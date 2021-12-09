@@ -6,7 +6,7 @@
 
 Console::Console(const PixelColor &fg_color, const PixelColor &bg_color)
     : writer_{nullptr}, fg_color_{fg_color}, bg_color_{bg_color},
-      buffer_{}, cursor_row_{0}, cursor_column_{0}, window_{nullptr} {}
+      buffer_{}, cursor_row_{0}, cursor_column_{0}, layer_id_{0}, window_{nullptr} {}
 
 void Console::PutString(const char *s)
 {
@@ -54,6 +54,16 @@ void Console::Newline()
         }
         memset(buffer_[kRows - 1], 0, kColumns + 1);
     }
+}
+
+void Console::SetLayerID(unsigned int layer_id)
+{
+    layer_id_ = layer_id;
+}
+
+unsigned int Console::LayerID()
+{
+    return layer_id_;
 }
 
 void Console::SetWindow(const std::shared_ptr<Window> &window)

@@ -348,12 +348,13 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
                                     .ID();
 
     layer_manager->UpDown(bglayer_id, 0);
-    layer_manager->UpDown(mouse_layer_id, 1);
+    layer_manager->UpDown(console->LayerID(), 1);
     layer_manager->UpDown(main_window_layer_id, 1);
-    layer_manager->Draw();
+    layer_manager->UpDown(mouse_layer_id, 3);
+    layer_manager->Draw({{0, 0}, screen_size});
 
     char str[128];
-    unsigned int count = 0;    
+    unsigned int count = 0;
 
     while (1)
     {

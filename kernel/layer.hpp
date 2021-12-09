@@ -14,12 +14,14 @@ public:
 
     Layer &SetWindow(const std::shared_ptr<Window> &window);
 
+    Vector2D<int> GetPosition() const;
     std::shared_ptr<Window> GetWindow() const;
 
     Layer &Move(Vector2D<int> pos);
     Layer &MoveRelative(Vector2D<int> pos_diff);
 
     void DrawTo(FrameBuffer &writer) const;
+    void DrawTo(FrameBuffer &screen, const Rectangle<int> &area) const;
 
 private:
     unsigned int id_;
