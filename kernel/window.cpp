@@ -57,33 +57,6 @@ Window::Window(int width, int height, PixelFormat shadow_format) : width_{width}
     }
 }
 
-void Window::DrawTo(FrameBuffer &dst, Vector2D<int> position)
-{
-    if (!transparent_color_)
-    {
-        dst.Copy(position, shadow_buffer_);
-        return;
-    }
-
-    const auto tc = transparent_color_.value();
-    auto &writer = dst.Writer();
-    for (int y = std::max(0, 0 - position.y);
-         y < std::min(Height(), writer.Height() - position.y);
-         y++)
-    {
-        for (int x = std::max(0, 0 - position.x);
-             x < std::min(Width(), writer.Width() - position.x);
-             x++)
-        {
-            const auto c = At(Vector2D<int>{x, y});
-            if (c != tc)
-            {
-                writer.Write(position + Vector2D<int>{x, y}, c);
-            }
-        }
-    }
-}
-
 void Window::DrawTo(FrameBuffer &dst, Vector2D<int> pos, const Rectangle<int> &area)
 {
     if (!transparent_color_)
@@ -91,6 +64,25 @@ void Window::DrawTo(FrameBuffer &dst, Vector2D<int> pos, const Rectangle<int> &a
         Rectangle<int> window_area{pos, Size()};
         Rectangle<int> intersection = area & window_area;
         dst.Copy(intersection.pos, shadow_buffer_, {intersection.pos - pos, intersection.size});
+        return;
+    }
+
+    const auto tc = transparent_color_.value();
+    auto &writer = dst.Writer();
+    for (int y = std::max(0, 0 - pos.y);
+         y < std::min(Height(), writer.Height() - pos.y);
+         y++)
+    {
+        for (int x = std::max(0, 0 - pos.x);
+             x < std::min(Width(), writer.Width() - pos.x);
+             x++)
+        {
+            const auto c = At(Vector2D<int>{x, y});
+            if (c != tc)
+            {
+                writer.Write(pos + Vector2D<int>{x, y}, c);
+            }
+        }
     }
 }
 
@@ -128,11 +120,6 @@ const PixelColor &Window::At(Vector2D<int> pos) const
 int Window::Width() const
 {
     return width_;
-}
-
-Vector2D<int> Window::Size() const
-{
-    return Vector2D<int>{width_, height_};
 }
 
 int Window::Height() const

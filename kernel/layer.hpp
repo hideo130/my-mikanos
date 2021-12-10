@@ -20,7 +20,6 @@ public:
     Layer &Move(Vector2D<int> pos);
     Layer &MoveRelative(Vector2D<int> pos_diff);
 
-    void DrawTo(FrameBuffer &writer) const;
     void DrawTo(FrameBuffer &screen, const Rectangle<int> &area) const;
 
 private:
@@ -40,14 +39,13 @@ public:
 
     Layer &NewLayer();
 
-    void Draw() const;
+    void Draw(unsigned int id) const;
     void Draw(const Rectangle<int> &area) const;
 
     /**
      * @brief Move layer position to specify absolute position
-     * Does not redraw
      */
-    void Move(unsigned int id, Vector2D<int> new_position);
+    void Move(unsigned int id, Vector2D<int> new_pos);
     /**
      * @brief Move layer position to specify relative position
      * Does not redraw.

@@ -14,13 +14,6 @@ Layer &Layer::MoveRelative(Vector2D<int> pos_diff)
     return *this;
 }
 
-void Layer::DrawTo(FrameBuffer &writer) const
-{
-    if (window_)
-    {
-        window_->DrawTo(writer, pos_);
-    }
-}
 void Layer::DrawTo(FrameBuffer &screen, const Rectangle<int> &area) const
 {
     if (window_)
@@ -45,6 +38,11 @@ Vector2D<int> Layer::GetPosition() const
     return pos_;
 }
 
+std::shared_ptr<Window> Layer::GetWindow() const
+{
+    return window_;
+}
+
 Layer &LayerManager::NewLayer()
 {
     ++latest_id_;
@@ -65,9 +63,14 @@ Layer *LayerManager::FindLayer(unsigned int id)
     return it->get();
 }
 
-void LayerManager::Move(unsigned int id, Vector2D<int> new_position)
+void LayerManager::Move(unsigned int id, Vector2D<int> new_pos)
 {
-    FindLayer(id)->Move(new_position);
+    auto layer = FindLayer(id);
+    const auto window_size = layer->GetWindow()->Size();
+    const auto old_pos = layer->GetPosition();
+    layer->Move(new_pos);
+    Draw({old_pos, window_size});
+    Draw(id);
 }
 
 void LayerManager::MoveRelative(unsigned int id, Vector2D<int> pos_diff)
@@ -78,14 +81,6 @@ void LayerManager::MoveRelative(unsigned int id, Vector2D<int> pos_diff)
 void LayerManager::SetWriter(FrameBuffer *screen)
 {
     screen_ = screen;
-}
-
-void LayerManager::Draw() const
-{
-    for (auto layer : layer_stack_)
-    {
-        layer->DrawTo(*screen_);
-    }
 }
 
 void LayerManager::Draw(const Rectangle<int> &area) const

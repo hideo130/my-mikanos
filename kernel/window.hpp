@@ -33,7 +33,6 @@ public:
     Window &operator=(const Window &rhs) = delete;
 
     void DrawTo(PixelWriter &writer, Vector2D<int> position);
-    void DrawTo(FrameBuffer &screen, Vector2D<int> position);
     void DrawTo(FrameBuffer &dst, Vector2D<int> pos, const Rectangle<int> &area);
     void Move(Vector2D<int> dst_pos, const Rectangle<int> &src);
     void SetTransparentColor(std::optional<PixelColor> c);
@@ -43,7 +42,6 @@ public:
     const PixelColor &At(int x, int y) const;
     const PixelColor &At(Vector2D<int> pos) const;
 
-    Vector2D<int> Size() const;
     int Width() const;
     int Height() const;
 

@@ -69,4 +69,11 @@ hankaku.o: hankaku.bin
 depends:
 	$(MAKE) $(DEPENDS)
 
+.PHONY: build
+build:
+	cp ../Conf/target.txt $(EDK2DIR)/Conf/
+	cd $(EDK2DIR); \
+	source ./edksetup.sh; \
+	build
+
 -include $(DEPENDS)

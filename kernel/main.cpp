@@ -95,7 +95,6 @@ void MouseObserver(int8_t displacement_x, int8_t displacement_y)
     mouse_position = ElementMax(newpos, {0, 0});
     layer_manager->Move(mouse_layer_id, mouse_position);
     StartLAPICTimer();
-    layer_manager->Draw();
     auto elapsed = LAPICTimerElapsed();
     StopLAPICTimer();
     printk("mouseObserver :elapsed %u\n", elapsed);
@@ -309,7 +308,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     auto bgwriter = bgwindow->Writer();
 
     DrawDesktop(*bgwriter);
-    console->SetWindow(bgwindow);
+    // console->SetWindow(bgwindow);
 
     auto mouse_window = std::make_shared<Window>(
         kMouseCursorWidth, kMouseCursorHeight, kFrameFormat);
@@ -329,6 +328,10 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     // WriteString(*main_window->Writer(), {24, 28}, "Welcomet to ", {0, 0, 0});
     // WriteString(*main_window->Writer(), {24, 44}, " MikanOS world!", {0, 0, 0});
 
+    auto console_window = std::make_shared<Window>(
+        Console::kColumns * 8, Console::kRows * 16, frame_buffer_config.pixel_format);
+    console->SetWindow(console_window);
+
     layer_manager = new LayerManager;
     layer_manager->SetWriter(&screen);
 
@@ -346,10 +349,15 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
                                     .SetWindow(main_window)
                                     .Move({300, 100})
                                     .ID();
+    console->SetLayerID(
+        layer_manager->NewLayer()
+            .SetWindow(console_window)
+            .Move({0, 0})
+            .ID());
 
     layer_manager->UpDown(bglayer_id, 0);
     layer_manager->UpDown(console->LayerID(), 1);
-    layer_manager->UpDown(main_window_layer_id, 1);
+    layer_manager->UpDown(main_window_layer_id, 2);
     layer_manager->UpDown(mouse_layer_id, 3);
     layer_manager->Draw({{0, 0}, screen_size});
 
@@ -362,7 +370,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
         sprintf(str, "%010u", count);
         FillRectangle(*main_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
         WriteString(*main_window->Writer(), {24, 28}, str, {0, 0, 0});
-        layer_manager->Draw();
+        layer_manager->Draw(main_window_layer_id);
 
         __asm__("cli");
         if (main_queue.Count() == 0)
