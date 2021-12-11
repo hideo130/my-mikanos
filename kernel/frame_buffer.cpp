@@ -70,6 +70,11 @@ Error FrameBuffer::Initialize(const FrameBufferConfig &config)
     return MAKE_ERROR(Error::kSuccess);
 }
 
+FrameBufferConfig FrameBuffer::Config()const
+{
+    return config_;
+}
+
 Error FrameBuffer::Copy(Vector2D<int> pos, const FrameBuffer &src)
 {
     if (config_.pixel_format != src.config_.pixel_format)
