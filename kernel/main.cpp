@@ -36,12 +36,6 @@
 
 void operator delete(void *obj) noexcept {}
 
-char console_buf[sizeof(Console)];
-Console *console;
-
-char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
-PixelWriter *pixel_writer;
-
 int printk(const char *format, ...)
 {
     va_list ap;
@@ -115,10 +109,13 @@ void MouseObserver(uint8_t buttons, int8_t displacement_x, int8_t displacement_y
     }
     else if (previous_left_pressed && left_pressed)
     {
-        if(mouse_drag_layer_id >0){
+        if (mouse_drag_layer_id > 0)
+        {
             layer_manager->MoveRelative(mouse_drag_layer_id, posdiff);
         }
-    }else if(previous_left_pressed && !left_pressed){
+    }
+    else if (previous_left_pressed && !left_pressed)
+    {
         mouse_drag_layer_id = 0;
     }
     previous_buttons = buttons;
@@ -161,44 +158,22 @@ extern "C" void
 KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
                    const MemoryMap &memory_map_ref)
 {
-    FrameBufferConfig frame_buffer_config{frame_buffer_config_ref};
     MemoryMap memory_map{memory_map_ref};
 
-    switch (frame_buffer_config.pixel_format)
-    {
-    case kPixelRGBResv8BitPerColor:
-        pixel_writer = new (pixel_writer_buf)
-            RGBResv8BitPerColorPixelWriter{frame_buffer_config};
-        break;
-    case kPixelBGRResv8BitPerColor:
-        pixel_writer = new (pixel_writer_buf)
-            BGRResv8BitPerColorPixelWriter{frame_buffer_config};
-        break;
-    default:
-        break;
-    }
-
+    InitializedGraphics(frame_buffer_config_ref);
+    InitializeConsole();
     // WriteAscii(*pixel_writer, 58, 50, 'a', {0, 0, 0});
     // WriteString(*pixel_writer, 100, 66, "Hello World!", {0, 0, 255});
     // char buf[128];
     // sprintf(buf, "1+2=%d", 1 + 2);
     // WriteString(*pixel_writer, 100, 300, buf, {0, 0, 255});
-    DrawDesktop(*pixel_writer);
-    console = new (console_buf) Console{kDesktopFGColor, kDesktopBGColor};
-    console->SetWriter(pixel_writer);
 
     printk("Welcom to MyMikcanos!\n");
     SetLogLevel(kError);
 
     InitializeLAPICTimer();
 
-    // configure segment
-    SetupSegments();
-    const uint16_t kernel_cs = 1 << 3;
-    const uint16_t kernel_ss = 2 << 3;
-    SetDSAll(0);
-    SetCSSS(kernel_cs, kernel_ss);
-
+    InitializeSegmentation();
     SetupIdentityPageTable();
 
     ::memory_manager = new (memory_manager_buf) BitmapMemoryManager;
@@ -279,7 +254,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     }
 
     SetIDTEntry(idt[InterruptVector::kXHCI], MakeIDTAttr(DescriptorType::kInterruptGate, 0),
-                reinterpret_cast<uint64_t>(IntHandlerXHCI), kernel_cs);
+                reinterpret_cast<uint64_t>(IntHandlerXHCI), kKernelCS);
     LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
 
     const uint8_t bsp_local_apic_id = *reinterpret_cast<const uint32_t *>(0xfee00020) >> 24;
@@ -325,12 +300,12 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
         }
     }
 
-    const int kFrameWidth = frame_buffer_config.horizontal_resolution;
-    const int kFrameHeight = frame_buffer_config.vertical_resolution;
-    const auto kFrameFormat = frame_buffer_config.pixel_format;
+    const int kFrameWidth = screen_config.horizontal_resolution;
+    const int kFrameHeight = screen_config.vertical_resolution;
+    const auto kFrameFormat = screen_config.pixel_format;
 
-    screen_size.x = frame_buffer_config.horizontal_resolution;
-    screen_size.y = frame_buffer_config.vertical_resolution;
+    screen_size.x = screen_config.horizontal_resolution;
+    screen_size.y = screen_config.vertical_resolution;
 
     // generate two layer
     auto bgwindow = std::make_shared<Window>(kFrameWidth, kFrameHeight, kFrameFormat);
@@ -345,20 +320,20 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     DrawMouseCursor(mouse_window->Writer(), {0, 0});
 
     FrameBuffer screen;
-    if (auto err = screen.Initialize(frame_buffer_config))
+    if (auto err = screen.Initialize(screen_config))
     {
         Log(kError, "failed to initialize frame buffer: %s at %s:%d\n",
             err.Name(), err.File(), err.Line());
     }
 
     auto main_window = std::make_shared<Window>(
-        160, 52, frame_buffer_config.pixel_format);
+        160, 52, screen_config.pixel_format);
     DrawWindow(*main_window->Writer(), "Hello Window");
     // WriteString(*main_window->Writer(), {24, 28}, "Welcomet to ", {0, 0, 0});
     // WriteString(*main_window->Writer(), {24, 44}, " MikanOS world!", {0, 0, 0});
 
     auto console_window = std::make_shared<Window>(
-        Console::kColumns * 8, Console::kRows * 16, frame_buffer_config.pixel_format);
+        Console::kColumns * 8, Console::kRows * 16, screen_config.pixel_format);
     console->SetWindow(console_window);
 
     layer_manager = new LayerManager;

@@ -132,3 +132,8 @@ void DrawRectangle(PixelWriter &writer, const Vector2D<int> &pos,
                    const Vector2D<int> &size, const PixelColor &c);
 
 void DrawDesktop(PixelWriter &writer);
+
+extern FrameBufferConfig screen_config;
+extern PixelWriter* screen_writer;
+
+void InitializedGraphics(const FrameBufferConfig &screen_config);
