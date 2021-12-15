@@ -126,9 +126,6 @@ void MouseObserver(uint8_t buttons, int8_t displacement_x, int8_t displacement_y
     printk("mouseObserver :elapsed %u\n", elapsed);
 }
 
-char memory_manager_buf[sizeof(BitmapMemoryManager)];
-BitmapMemoryManager *memory_manager;
-
 extern "C" void __cxa_pure_virtual()
 {
     while (1)
@@ -176,49 +173,8 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     InitializeSegmentation();
     SetupIdentityPageTable();
 
-    ::memory_manager = new (memory_manager_buf) BitmapMemoryManager;
-
+    InitializeMemoryManager(memory_map);
     printk("memory_map: %p\n", &memory_map);
-    const auto memory_map_base = reinterpret_cast<uintptr_t>(memory_map.buffer);
-    uintptr_t available_end = 0;
-    for (uintptr_t iter = memory_map_base;
-         iter < memory_map_base + memory_map.map_size;
-         iter += memory_map.descriptor_size)
-    {
-        auto desc = reinterpret_cast<MemoryDescriptor *>(iter);
-        if (available_end < desc->physical_start)
-        {
-            memory_manager->MarkAllocated(
-                FrameID{available_end / kBytesPerFrame},
-                (desc->physical_start - available_end) / kBytesPerFrame);
-            Log(kDebug, "type = %u, phys = %08lx - %08lx, pages = %lu, attr = %08lx\n",
-                desc->type,
-                desc->physical_start,
-                desc->physical_start + desc->number_of_pages * 4096 - 1,
-                desc->number_of_pages,
-                desc->attribute);
-        }
-        const auto physical_end =
-            desc->physical_start + desc->number_of_pages * kUEFIPageSize;
-        if (IsAvailable(static_cast<MemoryType>(desc->type)))
-        {
-            available_end = physical_end;
-        }
-        else
-        {
-            memory_manager->MarkAllocated(
-                FrameID{desc->physical_start / kBytesPerFrame},
-                desc->number_of_pages * kUEFIPageSize / kBytesPerFrame);
-        }
-    }
-    memory_manager->SetMemoryRange(FrameID{1}, FrameID{available_end / kBytesPerFrame});
-
-    if (auto err = InitializeHeap(*memory_manager))
-    {
-        Log(kError, "failed to allocated pages: %s at %s:%d\n",
-            err.Name(), err.File(), err.Line());
-        exit(1);
-    }
 
     std::array<Message, 32> main_queue_data;
     ArrayQueue<Message> main_queue{main_queue_data};
