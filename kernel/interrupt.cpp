@@ -4,6 +4,7 @@
 #include "asmfunc.h"
 #include "interrupt.hpp"
 #include "segment.hpp"
+#include "timer.hpp"
 
 void NotifyEndOfInterrupt()
 {
@@ -31,6 +32,11 @@ namespace
         msg_queue->push_back(Message{Message::kInterruptXHCI});
         NotifyEndOfInterrupt();
     }
+
+    __attribute__((interrupt)) void IntHandlerLAPICTimer(InterruptFrame* frame){
+        LAPICTimerOnInterrupt();
+        NotifyEndOfInterrupt();
+    }
 }
 
 void InitializeInterrupt(std::deque<Message> *msg_queue)
@@ -39,6 +45,10 @@ void InitializeInterrupt(std::deque<Message> *msg_queue)
     SetIDTEntry(idt[InterruptVector::kXHCI],
                 MakeIDTAttr(DescriptorType::kInterruptGate, 0),
                 reinterpret_cast<uint64_t>(IntHandlerXHCI),
+                kKernelCS);
+    SetIDTEntry(idt[InterruptVector::kLAPICTimer],
+                MakeIDTAttr(DescriptorType::kInterruptGate, 0),
+                reinterpret_cast<uint64_t>(IntHandlerLAPICTimer),
                 kKernelCS);
     LoadIDT(sizeof(idt) - 1, reinterpret_cast<uintptr_t>(&idt[0]));
 }

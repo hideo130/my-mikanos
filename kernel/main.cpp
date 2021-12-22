@@ -46,11 +46,6 @@ int printk(const char *format, ...)
     result = vsprintf(s, format, ap);
     va_end(ap);
 
-    StartLAPICTimer();
-    console->PutString(s);
-    auto elapsed = LAPICTimerElapsed();
-    StopLAPICTimer();
-    sprintf(s, "[%9d]", elapsed);
     console->PutString(s);
     return result;
 }
@@ -109,6 +104,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     InitializeMemoryManager(memory_map);
     printk("memory_map: %p\n", &memory_map);
 
+    InitializeLAPICTimer();
     ::main_queue = new std::deque<Message>(32);
     InitializeInterrupt(main_queue);
 
@@ -120,12 +116,14 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     InitializeMouse();
     layer_manager->Draw({{0, 0}, ScreenSize()});
     char str[128];
-    unsigned int count = 0;
 
     while (1)
     {
-        ++count;
-        sprintf(str, "%010u", count);
+        __asm__("cli");
+        const auto tick = timer_manager->CurrentTick();
+        __asm__("sti");
+
+        sprintf(str, "%010lu", tick);
         FillRectangle(*main_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
         WriteString(*main_window->Writer(), {24, 28}, str, {0, 0, 0});
         layer_manager->Draw(main_window_layer_id);
@@ -133,7 +131,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
         __asm__("cli");
         if (main_queue->size() == 0)
         {
-            __asm__("sti");
+            __asm__("sti\n\thlt");
             continue;
         }
 
@@ -145,6 +143,9 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
         {
         case Message::kInterruptXHCI:
             usb::xhci::ProcessEvents();
+            break;
+        case Message::kInterruptLAPICTimer:
+            printk("Timer interrupt\n");
             break;
         default:
             Log(kError, "Unknown message type: %d\n", msg.type);
