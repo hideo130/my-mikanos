@@ -137,3 +137,5 @@ extern FrameBufferConfig screen_config;
 extern PixelWriter* screen_writer;
 
 void InitializedGraphics(const FrameBufferConfig &screen_config);
+
+Vector2D<int> ScreenSize();

@@ -58,13 +58,19 @@ void DrawDesktop(PixelWriter &writer)
 }
 
 FrameBufferConfig screen_config;
-PixelWriter* screen_writer;
+PixelWriter *screen_writer;
 
-
-namespace {
-  char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
+Vector2D<int> ScreenSize()
+{
+    return {
+        static_cast<int>(screen_config.horizontal_resolution),
+        static_cast<int>(screen_config.vertical_resolution)};
 }
 
+namespace
+{
+    char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
+}
 
 void InitializedGraphics(const FrameBufferConfig &screen_config)
 {
