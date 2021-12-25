@@ -12,6 +12,7 @@
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
 #include "interrupt.hpp"
+#include "keyboard.hpp"
 #include "layer.hpp"
 #include "memory_manager.hpp"
 #include "memory_map.hpp"
@@ -83,7 +84,7 @@ alignas(16) uint8_t kernel_main_stack[1024 * 1024];
 extern "C" void
 KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
                    const MemoryMap &memory_map_ref,
-                   const acpi::RSDP& acpi_table)
+                   const acpi::RSDP &acpi_table)
 {
     MemoryMap memory_map{memory_map_ref};
 
@@ -96,8 +97,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     // WriteString(*pixel_writer, 100, 300, buf, {0, 0, 255});
 
     printk("Welcom to MyMikcanos!\n");
-    SetLogLevel(kDebug);
-
+    SetLogLevel(kWarn);
 
     InitializeSegmentation();
     SetupIdentityPageTable();
@@ -114,6 +114,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     InitializeLayer();
     InitializeMainWindow();
     InitializeMouse();
+    InitializeKeyboard(*main_queue);
     layer_manager->Draw({{0, 0}, ScreenSize()});
 
     acpi::Initialize(acpi_table);
@@ -121,8 +122,6 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
 
     timer_manager->AddTimer(Timer(200, 2));
     timer_manager->AddTimer(Timer(600, -1));
-
-
 
     char str[128];
 
@@ -159,7 +158,13 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
             if (msg.arg.timer.value > 0)
             {
                 timer_manager->AddTimer(Timer(msg.arg.timer.timeout + 100,
-                                              msg.arg.timer.value + 1));                                              
+                                              msg.arg.timer.value + 1));
+            }
+            break;
+        case Message::kKeyPush:
+            if (msg.arg.keyboard.ascii != 0)
+            {
+                printk("%c", msg.arg.keyboard.ascii);
             }
             break;
         default:
