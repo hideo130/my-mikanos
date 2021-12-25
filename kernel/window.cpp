@@ -25,15 +25,6 @@ namespace
         ".$$$$$$$$$$$$$$@",
         "@@@@@@@@@@@@@@@@",
     };
-
-    constexpr PixelColor ToColor(uint32_t c)
-    {
-        return {
-            static_cast<uint8_t>((c >> 16) & 0xff),
-            static_cast<uint8_t>((c >> 8) & 0xff),
-            static_cast<uint8_t>(c & 0xff)};
-    }
-
 }
 
 Window::Window(int width, int height, PixelFormat shadow_format) : width_{width}, height_{height}
@@ -176,4 +167,28 @@ void DrawWindow(PixelWriter &writer, const char *title)
             writer.Write({win_w - 5 - kCloseButtonWidth + x, 5 + y}, c);
         }
     }
+}
+
+void DrawTextBox(PixelWriter &writer, Vector2D<int> pos, Vector2D<int> size)
+{
+    auto fill_rect = [&writer](Vector2D<int> pos, Vector2D<int> size, uint32_t c)
+    {
+        FillRectangle(writer, pos, size, ToColor(c));
+    };
+
+    // fill main box
+    // both boader is 1 pixel, add both size then minus 2
+    fill_rect(pos + Vector2D<int>{1, 1}, size - Vector2D<int>{2, 2}, 0xffffff);
+
+    uint32_t tp_l_color = 0x848484;
+    uint32_t bm_r_color = 0xc6c6c6;
+    // draw border lines
+    // top boader
+    fill_rect(pos, {size.x, 1}, tp_l_color);
+    // left boader
+    fill_rect(pos, {1, size.y}, tp_l_color);
+    // bottom boader
+    fill_rect(pos + Vector2D<int>{0, size.y}, {size.x, 1}, bm_r_color);
+    // right boader
+    fill_rect(pos + Vector2D<int>{size.x, 0}, Vector2D<int>{1, size.y}, bm_r_color);    
 }

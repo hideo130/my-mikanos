@@ -27,6 +27,10 @@ void WriteString(PixelWriter &writer, int x, int y, const char *s, const PixelCo
     }
 }
 
+void WriteAscii(PixelWriter &writer, Vector2D<int> pos, char c, const PixelColor &color){
+    WriteAscii(writer, pos.x, pos.y, c, color);
+}
+
 void WriteAscii(PixelWriter &writer, int x, int y, char c, const PixelColor &color)
 {
     const uint8_t *font = GetFont(c);

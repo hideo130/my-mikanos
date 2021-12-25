@@ -134,8 +134,16 @@ void DrawRectangle(PixelWriter &writer, const Vector2D<int> &pos,
 void DrawDesktop(PixelWriter &writer);
 
 extern FrameBufferConfig screen_config;
-extern PixelWriter* screen_writer;
+extern PixelWriter *screen_writer;
 
 void InitializedGraphics(const FrameBufferConfig &screen_config);
 
 Vector2D<int> ScreenSize();
+
+constexpr PixelColor ToColor(uint32_t c)
+{
+    return {
+        static_cast<uint8_t>((c >> 16) & 0xff),
+        static_cast<uint8_t>((c >> 8) & 0xff),
+        static_cast<uint8_t>(c & 0xff)};
+}
