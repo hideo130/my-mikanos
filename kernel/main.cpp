@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "asmfunc.h"
+#include "acpi.hpp"
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
 #include "interrupt.hpp"
@@ -95,7 +96,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     // WriteString(*pixel_writer, 100, 300, buf, {0, 0, 255});
 
     printk("Welcom to MyMikcanos!\n");
-    SetLogLevel(kError);
+    SetLogLevel(kDebug);
 
 
     InitializeSegmentation();

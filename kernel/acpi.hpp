@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 namespace acpi
@@ -53,6 +54,8 @@ namespace acpi
         uint32_t flags;
         char reserved3[276 - 116];
     } __attribute__((packed));
+
+    void WaitMilliseconds(unsigned long msec);
 
     extern const FADT *fadt;
 

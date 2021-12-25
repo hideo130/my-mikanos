@@ -25,10 +25,9 @@ namespace
 
 }
 
-acpi::FADT *fadt;
-
 namespace acpi
 {
+    const FADT *fadt;
 
     void Initialize(const RSDP &rsdp)
     {

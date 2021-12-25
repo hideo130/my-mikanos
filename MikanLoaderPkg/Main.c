@@ -214,10 +214,10 @@ void CopyLoadSegments(Elf64_Ehdr *ehdr)
 /**
  * @brief UEFI application
  * start from this function
- * 
+ *
  * @param image_handle UEFI bios set this parameter
  * @param system_table UEFI bios set this parameter
- * @return EFI_STATUS 
+ * @return EFI_STATUS
  */
 
 EFI_STATUS EFIAPI UefiMain(
@@ -321,9 +321,9 @@ EFI_STATUS EFIAPI UefiMain(
 
   VOID *kernel_buffer;
   // AllocatePool allocates memory in bytes instead of pages.
-  // We don't have to specify memory location only because we load kernel file to temporary resion
+  // We don't have to specify memory location only because we load kernel file to temporary region
   // If allocation succeed, kernel_buffer points start address
-  // First argument is memory region type and we usually spicify EfiLoaderDta for boot loader.
+  // First argument is memory region type and we usually spicify EfiLoaderData for boot loader.
   status = gBS->AllocatePool(EfiLoaderData, kernel_file_size, &kernel_buffer);
   if (EFI_ERROR(status))
   {
@@ -412,10 +412,22 @@ EFI_STATUS EFIAPI UefiMain(
     Halt();
   }
 
+  VOID *acpi_table = NULL;
+  for (UINTN i = 0; i < system_table->NumberOfTableEntries; i++)
+  {
+    if (CompareGuid(&gEfiAcpiTableGuid,
+                    &system_table->ConfigurationTable[i].VendorGuid))
+    {
+      acpi_table = system_table->ConfigurationTable[i].VendorTable;
+      break;
+    }
+  }
+
   typedef void __attribute__((sysv_abi)) EntryPointType(const struct FrameBufferConfig *,
-                                                        const struct MemoryMap *);
+                                                        const struct MemoryMap*,
+                                                        const VOID *);
   EntryPointType *entry_point = (EntryPointType *)entry_addr;
-  entry_point(&config, &memmap);
+  entry_point(&config, &memmap, acpi_table);
   // #@@range_end(call_kernel)
 
   Print(L"All done\n");
