@@ -140,6 +140,50 @@ std::deque<Message> *main_queue;
 
 alignas(16) uint8_t kernel_main_stack[1024 * 1024];
 
+std::shared_ptr<Window> task_b_window;
+unsigned int task_b_window_layer_id;
+void InitializeTaskBWindow()
+{
+    task_b_window = std::make_shared<Window>(
+        160, 52, screen_config.pixel_format);
+    DrawWindow(*task_b_window->Writer(), "TaskB Window");
+
+    task_b_window_layer_id = layer_manager->NewLayer()
+                                 .SetWindow(task_b_window)
+                                 .SetDraggable(true)
+                                 .Move({100, 100})
+                                 .ID();
+    layer_manager->UpDown(task_b_window_layer_id, std::numeric_limits<int>::max());
+}
+
+struct TaskContext
+{
+    uint64_t cr3, rip, rflags, reserved1;            // offset 0x00
+    uint64_t cs, ss, fs, gs;                         // offset 0x20
+    uint64_t rax, rbx, rcx, rdx, rdi, rsi, rsp, rbp; // offset 0x40
+    // 8 registers
+    uint64_t r8, r9, r10, r11, r12, r13, r14, r15; // offset 0x80
+    std::array<uint8_t, 512> fxsave_area;            // offset 0xc0
+} __attribute__((packed));
+alignas(16) TaskContext task_b_ctx, task_a_ctx;
+
+void TaskB(int task_id, int data)
+{
+    printk("TaskB: task_id=%d, data=%d\n", task_id, data);
+    char str[128];
+    int count = 0;
+    while (true)
+    {
+        count++;
+        sprintf(str, "%010d", count);
+        FillRectangle(*task_b_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
+        WriteString(*task_b_window->Writer(), {24, 28}, str, {0, 0, 0});
+        layer_manager->Draw(task_b_window_layer_id);
+
+        SwitchContext(&task_a_ctx, &task_b_ctx);
+    }
+}
+
 extern "C" void
 KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
                    const MemoryMap &memory_map_ref,
@@ -147,7 +191,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
 {
     MemoryMap memory_map{memory_map_ref};
 
-    InitializedGraphics(frame_buffer_config_ref);
+    InitializeGraphics(frame_buffer_config_ref);
     InitializeConsole();
     // WriteAscii(*pixel_writer, 58, 50, 'a', {0, 0, 0});
     // WriteString(*pixel_writer, 100, 66, "Hello World!", {0, 0, 255});
@@ -173,6 +217,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     InitializeLayer();
     InitializeMainWindow();
     InitializeTextWindow();
+    // InitializeTaskBWindow();
     InitializeMouse();
     InitializeKeyboard(*main_queue);
     layer_manager->Draw({{0, 0}, ScreenSize()});
@@ -186,11 +231,37 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     char str[128];
 
     const int kTextboxCursorTimer = 1;
-    const int kTimer05Sec = static_cast<int>(kTimeFreq * 0.5);
+    const int kTimer05Sec = static_cast<int>(kTimerFreq * 0.5);
     __asm__("cli");
     timer_manager->AddTimer(Timer{kTimer05Sec, kTextboxCursorTimer});
     __asm__("sti");
     bool textbox_cursor_visible = false;
+
+    std::vector<uint64_t> task_b_stack(1024);
+    uint64_t task_b_stack_end = reinterpret_cast<uint64_t>(&task_b_stack[1024]);
+
+    memset(&task_b_ctx, 0, sizeof(task_b_ctx));
+    // oh I can do cast function to uint64!
+    printk("TaskB address:%x\n",reinterpret_cast<uint64_t>(TaskB));
+    task_b_ctx.rip = reinterpret_cast<uint64_t>(TaskB);
+    // set argument of TaskB to rdi and rsi.
+    // register rdi and rsi is used for argument
+    task_b_ctx.rdi = 1;
+    task_b_ctx.rsi = 42;
+
+    task_b_ctx.cr3 = GetCR3();
+    // What's 0x202?
+    // If 1 and 9bit are 1, the others are 0, then the value is 0x202.
+    // If 9 bit is 1, then intrruption is allowed.
+    // 1 bit is fixed 1 on hardware, so it doesn't matter if bit is 1 or 0
+    task_b_ctx.rflags = 0x202;
+    task_b_ctx.cs = kKernelCS;
+    task_b_ctx.ss = kKernelSS;
+    task_b_ctx.rsp = (task_b_stack_end & ~0xflu) - 8;
+    // mask all exceptions in mxcsr
+    *reinterpret_cast<uint32_t *>(&task_b_ctx.fxsave_area[24]) = 0x1f80;
+
+    
 
     while (1)
     {
@@ -206,7 +277,8 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
         __asm__("cli");
         if (main_queue->size() == 0)
         {
-            __asm__("sti\n\thlt");
+            __asm__("sti");
+            SwitchContext(&task_b_ctx, &task_a_ctx);
             continue;
         }
 

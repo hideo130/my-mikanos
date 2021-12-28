@@ -72,7 +72,7 @@ namespace
     char pixel_writer_buf[sizeof(RGBResv8BitPerColorPixelWriter)];
 }
 
-void InitializedGraphics(const FrameBufferConfig &screen_config)
+void InitializeGraphics(const FrameBufferConfig &screen_config)
 {
     ::screen_config = screen_config;
     switch (screen_config.pixel_format)
