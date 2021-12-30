@@ -19,6 +19,7 @@
 #include "mouse.hpp"
 #include "queue.hpp"
 #include "segment.hpp"
+#include "task.hpp"
 #include "timer.hpp"
 #include "font.hpp"
 #include "console.hpp"
@@ -156,17 +157,6 @@ void InitializeTaskBWindow()
     layer_manager->UpDown(task_b_window_layer_id, std::numeric_limits<int>::max());
 }
 
-struct TaskContext
-{
-    uint64_t cr3, rip, rflags, reserved1;            // offset 0x00
-    uint64_t cs, ss, fs, gs;                         // offset 0x20
-    uint64_t rax, rbx, rcx, rdx, rdi, rsi, rsp, rbp; // offset 0x40
-    // 8 registers
-    uint64_t r8, r9, r10, r11, r12, r13, r14, r15; // offset 0x80
-    std::array<uint8_t, 512> fxsave_area;            // offset 0xc0
-} __attribute__((packed));
-alignas(16) TaskContext task_b_ctx, task_a_ctx;
-
 void TaskB(int task_id, int data)
 {
     printk("TaskB: task_id=%d, data=%d\n", task_id, data);
@@ -179,8 +169,6 @@ void TaskB(int task_id, int data)
         FillRectangle(*task_b_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
         WriteString(*task_b_window->Writer(), {24, 28}, str, {0, 0, 0});
         layer_manager->Draw(task_b_window_layer_id);
-
-        SwitchContext(&task_a_ctx, &task_b_ctx);
     }
 }
 
@@ -217,7 +205,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     InitializeLayer();
     InitializeMainWindow();
     InitializeTextWindow();
-    // InitializeTaskBWindow();
+    InitializeTaskBWindow();
     InitializeMouse();
     InitializeKeyboard(*main_queue);
     layer_manager->Draw({{0, 0}, ScreenSize()});
@@ -242,7 +230,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
 
     memset(&task_b_ctx, 0, sizeof(task_b_ctx));
     // oh I can do cast function to uint64!
-    printk("TaskB address:%x\n",reinterpret_cast<uint64_t>(TaskB));
+    printk("TaskB address:%x\n", reinterpret_cast<uint64_t>(TaskB));
     task_b_ctx.rip = reinterpret_cast<uint64_t>(TaskB);
     // set argument of TaskB to rdi and rsi.
     // register rdi and rsi is used for argument
@@ -261,7 +249,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     // mask all exceptions in mxcsr
     *reinterpret_cast<uint32_t *>(&task_b_ctx.fxsave_area[24]) = 0x1f80;
 
-    
+    InitializeTask();
 
     while (1)
     {
@@ -277,8 +265,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
         __asm__("cli");
         if (main_queue->size() == 0)
         {
-            __asm__("sti");
-            SwitchContext(&task_b_ctx, &task_a_ctx);
+            __asm__("sti\n\thlt");
             continue;
         }
 
