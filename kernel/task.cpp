@@ -8,6 +8,8 @@ namespace
     TaskContext *current_task;
 }
 
+Task::Task(uint64_t id) : id_{id}{};
+
 void SwitchTask(){
     TaskContext* old_current_task = current_task;
     if(current_task == &task_a_ctx){
