@@ -172,9 +172,11 @@ void TaskB(uint64_t task_id, int64_t data)
     }
 }
 
-void TaskIdle(uint64_t task_id, int64_t data){
-    printk("TaskIdle: task_id~%lu, data%lx\n", task_id, data);
-    while(true)__asm__("hlt");
+void TaskIdle(uint64_t task_id, int64_t data)
+{
+    printk("TaskIdle: task_id=%lu, data%lx\n", task_id, data);
+    while (true)
+        __asm__("hlt");
 }
 
 extern "C" void
@@ -218,8 +220,8 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     acpi::Initialize(acpi_table);
     InitializeLAPICTimer(*main_queue);
 
-    timer_manager->AddTimer(Timer(200, 2));
-    timer_manager->AddTimer(Timer(600, -1));
+    // timer_manager->AddTimer(Timer(200, 2));
+    // timer_manager->AddTimer(Timer(600, -1));
 
     char str[128];
 
@@ -234,10 +236,9 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     // oh I can do cast function to uint64!
     printk("TaskB address:%x\n", reinterpret_cast<uint64_t>(TaskB));
     InitializeTask();
-    task_manager->NewTask().InitContext(TaskB, 45);
-    task_manager->NewTask().InitContext(TaskIdle, 0xdeadbeef);
-    task_manager->NewTask().InitContext(TaskIdle, 0xcafebabe);
-
+    const uint64_t taskb_id = task_manager->NewTask().InitContext(TaskB, 45).Wakeup().ID();
+    task_manager->NewTask().InitContext(TaskIdle, 0xdeadbeef).Wakeup();
+    task_manager->NewTask().InitContext(TaskIdle, 0xcafebabe).Wakeup();
 
     while (1)
     {
@@ -279,6 +280,15 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
             break;
         case Message::kKeyPush:
             InputTextWindow(msg.arg.keyboard.ascii);
+            if (msg.arg.keyboard.ascii == 's')
+            {
+                printk("sleep TaskB: %s\n", task_manager->Sleep(taskb_id).Name());
+            }
+            else if (msg.arg.keyboard.ascii == 'w')
+            {
+                printk("wakeup TaskB: %s\n", task_manager->Wakeup(taskb_id).Name());
+            }
+
             break;
         default:
             Log(kError, "Unknown message type: %d\n", msg.type);

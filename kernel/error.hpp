@@ -30,6 +30,7 @@ public:
         kNoWaiter,
         kNoPCIMSI,
         kUnknownPixelFormat,
+        kNoSuchTask,
         kLastOfCode, // この列挙子は常に最後に配置する
     };
 
@@ -56,6 +57,7 @@ private:
         "kUnknownXHCISpeedID",
         "kNoWaiter",
         "kNoPCIMSI",
+        "kNoSuchTask",
         "kUnknownPixelFormat",
     };
     static_assert(Error::Code::kLastOfCode == code_names_.size());
