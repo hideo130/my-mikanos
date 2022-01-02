@@ -3,6 +3,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "error.hpp"
@@ -32,11 +33,14 @@ public:
     uint64_t ID() const;
     Task &Sleep();
     Task &Wakeup();
+    void SendMessage(const Message &msg);
+    std::optional<Message> ReceiveMessage();
 
 private:
     uint64_t id_;
     std::vector<uint64_t> stack_;
     alignas(16) TaskContext context_;
+    std::deque<Message> msgs_;
 };
 
 class TaskManager
@@ -50,6 +54,9 @@ public:
     Error Sleep(uint64_t id);
     void Wakeup(Task *task);
     Error Wakeup(uint64_t id);
+
+    Task &CurrentTask();
+    Error SendMessage(uint64_t id, const Message &msg);
 
 private:
     std::vector<std::unique_ptr<Task>> tasks_{};
