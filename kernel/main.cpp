@@ -232,14 +232,15 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     // oh I can do cast function to uint64!
     printk("TaskB address:%x\n", reinterpret_cast<uint64_t>(TaskB));
     InitializeTask();
-    usb::xhci::Initialize();
-    InitializeKeyboard();
-    InitializeMouse();
 
     Task &main_task = task_manager->CurrentTask();
     const uint64_t taskb_id = task_manager->NewTask().InitContext(TaskB, 45).Wakeup().ID();
     task_manager->NewTask().InitContext(TaskIdle, 0xdeadbeef).Wakeup();
     task_manager->NewTask().InitContext(TaskIdle, 0xcafebabe).Wakeup();
+
+    usb::xhci::Initialize();
+    InitializeKeyboard();
+    InitializeMouse();
 
     while (1)
     {
