@@ -172,13 +172,6 @@ void TaskB(uint64_t task_id, int64_t data)
     }
 }
 
-void TaskIdle(uint64_t task_id, int64_t data)
-{
-    printk("TaskIdle: task_id=%lu, data%lx\n", task_id, data);
-    while (true)
-        __asm__("hlt");
-}
-
 extern "C" void
 KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
                    const MemoryMap &memory_map_ref,
@@ -235,8 +228,6 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
 
     Task &main_task = task_manager->CurrentTask();
     const uint64_t taskb_id = task_manager->NewTask().InitContext(TaskB, 45).Wakeup().ID();
-    task_manager->NewTask().InitContext(TaskIdle, 0xdeadbeef).Wakeup();
-    task_manager->NewTask().InitContext(TaskIdle, 0xcafebabe).Wakeup();
 
     usb::xhci::Initialize();
     InitializeKeyboard();

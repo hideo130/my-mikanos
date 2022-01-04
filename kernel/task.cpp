@@ -10,6 +10,13 @@ namespace
         auto it = std::remove(c.begin(), c.end(), value);
         c.erase(it, c.end());
     }
+
+    void TaskIdle(uint64_t task_id, int64_t data)
+    {
+        while (true)
+            __asm__("hlt");
+    }
+
 }
 
 Task::Task(uint64_t id) : id_{id} {};
@@ -61,9 +68,10 @@ Task &Task::Wakeup()
     return *this;
 }
 
-Task& Task::Wakeup(int level) {
-  task_manager->Wakeup(this, level);
-  return *this;
+Task &Task::Wakeup(int level)
+{
+    task_manager->Wakeup(this, level);
+    return *this;
 }
 
 TaskContext &Task::Context()
@@ -97,6 +105,11 @@ TaskManager::TaskManager()
                      .SetLevel(current_level_)
                      .SetRunning(true);
     running_[current_level_].push_back(&task);
+
+    Task &idle = NewTask()
+                     .InitContext(TaskIdle, 0)
+                     .SetRunning(true);
+    running_[0].push_back(&idle);
 }
 
 Task &TaskManager::NewTask()

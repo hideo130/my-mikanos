@@ -31,7 +31,7 @@ bool TimerManager::Tick()
         if(t.Value() == kTaskTimerValue){
             task_timer_timeout = true;
             timers_.pop();
-            timers_.push(Timer{tick_ * kTaskTimerPeriod, kTaskTimerValue});
+            timers_.push(Timer{tick_ + kTaskTimerPeriod, kTaskTimerValue});
             continue;
         }
 
