@@ -123,6 +123,29 @@ Vector2D<int> Window::Size() const
     return Vector2D<int>{width_, height_};
 }
 
+ToplevelWindow::ToplevelWindow(int width, int height, PixelFormat shadow_format, const std::string &title)
+    : Window{width, height, shadow_format}, title_{title}
+{
+    DrawWindow(*Writer(), title_.c_str());
+}
+
+void ToplevelWindow::Activate()
+{
+    Window::Activate();
+    DrawWindowTitle(*Writer(), title_.c_str(), true);
+}
+
+void ToplevelWindow::Deactivate()
+{
+    Window::Deactivate();
+    DrawWindowTitle(*Writer(), title_.c_str(), false);
+}
+
+Vector2D<int> ToplevelWindow::InnerSize() const
+{
+    return Size() - kTopLeftMargin - kBottomRightMargin;
+}
+
 void DrawWindow(PixelWriter &writer, const char *title)
 {
     auto fill_rect = [&writer](Vector2D<int> pos, Vector2D<int> size, uint32_t c)
@@ -190,5 +213,39 @@ void DrawTextBox(PixelWriter &writer, Vector2D<int> pos, Vector2D<int> size)
     // bottom boader
     fill_rect(pos + Vector2D<int>{0, size.y}, {size.x, 1}, bm_r_color);
     // right boader
-    fill_rect(pos + Vector2D<int>{size.x, 0}, Vector2D<int>{1, size.y}, bm_r_color);    
+    fill_rect(pos + Vector2D<int>{size.x, 0}, Vector2D<int>{1, size.y}, bm_r_color);
+}
+
+void DrawWindowTitle(PixelWriter &writer, const char *title, bool activate)
+{
+    const auto win_w = writer.Width();
+    uint32_t bgcolor = 0x848484;
+    if (activate)
+    {
+        bgcolor = 0x000084;
+    }
+
+    FillRectangle(writer, {3, 3}, {win_w - 6, 18}, ToColor(bgcolor));
+    WriteString(writer, {24, 4}, title, ToColor(0xffffff));
+
+    for (int y = 0; y < kCloseButtonHeight; y++)
+    {
+        for (int x = 0; x < kCloseButtonWidth; x++)
+        {
+            PixelColor c = ToColor(0xffffff);
+            if (close_button[y][x] == '0')
+            {
+                c = ToColor(0x000000);
+            }
+            else if (close_button[y][x] == '$')
+            {
+                c = ToColor(0x848484);
+            }
+            else if (close_button[y][x] == ':')
+            {
+                c = ToColor(0xc6c6c6);
+            }
+            writer.Write({win_w - 5 - kCloseButtonWidth + x, 5 + y}, c);
+        }
+    }
 }

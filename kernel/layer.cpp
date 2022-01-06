@@ -247,6 +247,7 @@ void ActiveLayer::Activate(unsigned int layer_id)
     {
         Layer *layer = manager_.FindLayer(active_layer_);
         layer->GetWindow()->Activate();
+        // Why do we substract 1?
         manager_.UpDown(active_layer_, manager_.GetHeight(mouse_layer_) - 1);
         manager_.Draw(active_layer_);
     }
@@ -256,6 +257,8 @@ namespace
 {
     FrameBuffer *screen;
 }
+
+ActiveLayer *active_layer;
 
 void InitializeLayer()
 {
@@ -289,6 +292,8 @@ void InitializeLayer()
 
     layer_manager->UpDown(bglayer_id, 0);
     layer_manager->UpDown(console->LayerID(), 1);
+
+    active_layer = new ActiveLayer{*layer_manager};
 }
 
 void ProcessLayerMessage(const Message &msg)
