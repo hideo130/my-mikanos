@@ -248,6 +248,7 @@ void ActiveLayer::Activate(unsigned int layer_id)
         Layer *layer = manager_.FindLayer(active_layer_);
         layer->GetWindow()->Activate();
         // Why do we substract 1?
+        // Because to place one layer below the mouse layer.
         manager_.UpDown(active_layer_, manager_.GetHeight(mouse_layer_) - 1);
         manager_.Draw(active_layer_);
     }

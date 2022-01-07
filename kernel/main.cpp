@@ -20,6 +20,7 @@
 #include "queue.hpp"
 #include "segment.hpp"
 #include "task.hpp"
+#include "terminal.hpp"
 #include "timer.hpp"
 #include "font.hpp"
 #include "console.hpp"
@@ -69,7 +70,7 @@ void InitializeMainWindow()
 {
     main_window = std::make_shared<ToplevelWindow>(
         160, 52, screen_config.pixel_format, "Hello Window");
-    DrawTextBox(*main_window->InnerWriter(), {0, 0}, main_window->InnerSize());
+    DrawTextbox(*main_window->InnerWriter(), {0, 0}, main_window->InnerSize());
 
     main_window_layer_id = layer_manager->NewLayer()
                                .SetWindow(main_window)
@@ -88,7 +89,7 @@ void InitializeTextWindow()
 
     text_window = std::make_shared<ToplevelWindow>(
         win_w, win_h, screen_config.pixel_format, "Text Box Test");
-    DrawTextBox(*text_window->InnerWriter(), {0, 0}, text_window->InnerSize());
+    DrawTextbox(*text_window->InnerWriter(), {0, 0}, text_window->InnerSize());
 
     text_window_layer_id = layer_manager->NewLayer()
                                .SetWindow(text_window)
@@ -147,7 +148,7 @@ void InitializeTaskBWindow()
 {
     task_b_window = std::make_shared<ToplevelWindow>(
         160, 52, screen_config.pixel_format, "TaskB Window");
-    DrawTextBox(*task_b_window->InnerWriter(), {0, 0}, task_b_window->InnerSize());
+    DrawTextbox(*task_b_window->InnerWriter(), {0, 0}, task_b_window->InnerSize());
 
     task_b_window_layer_id = layer_manager->NewLayer()
                                  .SetWindow(task_b_window)
@@ -254,6 +255,11 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     Task &main_task = task_manager->CurrentTask();
     const uint64_t taskb_id = task_manager->NewTask().InitContext(TaskB, 45).Wakeup().ID();
 
+    const uint64_t task_terminal_id = task_manager->NewTask()
+    .InitContext(TaskTerminal, 0)
+    .Wakeup()
+    .ID();
+
     usb::xhci::Initialize();
     InitializeKeyboard();
     InitializeMouse();
@@ -293,6 +299,10 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
                 textbox_cursor_visible = !textbox_cursor_visible;
                 DrawTextCursor(textbox_cursor_visible);
                 layer_manager->Draw(text_window_layer_id);
+
+                __asm__("cli");
+                task_manager->SendMessage(task_terminal_id, *msg);
+                __asm__("sti");
             }
             break;
         case Message::kKeyPush:

@@ -1,6 +1,7 @@
 #include <algorithm>
 
 #include "error.hpp"
+#include "graphics.hpp"
 #include "logger.hpp"
 #include "window.hpp"
 #include "font.hpp"
@@ -25,6 +26,33 @@ namespace
         ".$$$$$$$$$$$$$$@",
         "@@@@@@@@@@@@@@@@",
     };
+
+    void DrawTextbox(PixelWriter &writer, Vector2D<int> pos, Vector2D<int> size,
+                     const PixelColor &background,
+                     const PixelColor &border_light,
+                     const PixelColor &border_dark)
+    {
+        auto fill_rect = [&writer](Vector2D<int> pos, Vector2D<int> size, const PixelColor &c)
+        {
+            FillRectangle(writer, pos, size, c);
+        };
+
+        // both boader is 1 pixel, adding up them is 2
+        //  to get size of main box, minus 2
+        // fill main box
+        fill_rect(pos + Vector2D<int>{1, 1}, size - Vector2D<int>{2, 2}, background);
+
+        // top boader
+        fill_rect(pos, {size.x, 1}, border_light);
+
+        // left boader
+        fill_rect(pos, {1, size.y}, border_light);
+        // bottom boader
+        fill_rect(pos + Vector2D<int>{0, size.y}, {size.x, 1}, border_dark);
+        // right boader
+        fill_rect(pos + Vector2D<int>{size.x, 0}, Vector2D<int>{1, size.y}, border_dark);
+    }
+
 }
 
 Window::Window(int width, int height, PixelFormat shadow_format) : width_{width}, height_{height}
@@ -192,28 +220,14 @@ void DrawWindow(PixelWriter &writer, const char *title)
     }
 }
 
-void DrawTextBox(PixelWriter &writer, Vector2D<int> pos, Vector2D<int> size)
+void DrawTextbox(PixelWriter &writer, Vector2D<int> pos, Vector2D<int> size)
 {
-    auto fill_rect = [&writer](Vector2D<int> pos, Vector2D<int> size, uint32_t c)
-    {
-        FillRectangle(writer, pos, size, ToColor(c));
-    };
+    DrawTextbox(writer, pos, size, ToColor(0xffffff), ToColor(0xc6c6c6), ToColor(0x848484));
+}
 
-    // fill main box
-    // both boader is 1 pixel, add both size then minus 2
-    fill_rect(pos + Vector2D<int>{1, 1}, size - Vector2D<int>{2, 2}, 0xffffff);
-
-    uint32_t tp_l_color = 0x848484;
-    uint32_t bm_r_color = 0xc6c6c6;
-    // draw border lines
-    // top boader
-    fill_rect(pos, {size.x, 1}, tp_l_color);
-    // left boader
-    fill_rect(pos, {1, size.y}, tp_l_color);
-    // bottom boader
-    fill_rect(pos + Vector2D<int>{0, size.y}, {size.x, 1}, bm_r_color);
-    // right boader
-    fill_rect(pos + Vector2D<int>{size.x, 0}, Vector2D<int>{1, size.y}, bm_r_color);
+void DrawTerminal(PixelWriter &writer, Vector2D<int> pos, Vector2D<int> size)
+{
+    DrawTextbox(writer, pos, size, ToColor(0x000000), ToColor(0xc6c6c6), ToColor(0x848484));
 }
 
 void DrawWindowTitle(PixelWriter &writer, const char *title, bool activate)

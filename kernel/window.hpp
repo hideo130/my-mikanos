@@ -65,6 +65,9 @@ class ToplevelWindow : public Window
 public:
     static constexpr Vector2D<int> kTopLeftMargin{4, 24};
     static constexpr Vector2D<int> kBottomRightMargin{4, 4};
+    static const int kMarginX = kTopLeftMargin.x + kBottomRightMargin.x;
+    static const int kMarginY = kTopLeftMargin.y + kBottomRightMargin.y;
+
     class InnerAreaWriter : public PixelWriter
     {
     public:
@@ -101,5 +104,6 @@ private:
 };
 
 void DrawWindow(PixelWriter &writer, const char *title);
-void DrawTextBox(PixelWriter &writer, Vector2D<int> pos, Vector2D<int> size);
+void DrawTextbox(PixelWriter &writer, Vector2D<int> pos, Vector2D<int> size);
+void DrawTerminal(PixelWriter &writer, Vector2D<int> pos, Vector2D<int> size);
 void DrawWindowTitle(PixelWriter &writer, const char *title, bool activate);
