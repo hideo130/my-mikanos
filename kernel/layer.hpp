@@ -100,6 +100,7 @@ constexpr Message MakeLayerMessage(
     LayerOperation op, const Rectangle<int> &area)
 {
     Message msg{Message::kLayer, task_id};
+    msg.arg.layer.layer_id = layer_id;
     msg.arg.layer.op = op;
     msg.arg.layer.x = area.pos.x;
     msg.arg.layer.y = area.pos.y;

@@ -54,10 +54,6 @@ int printk(const char *format, ...)
     return result;
 }
 
-unsigned int mouse_layer_id;
-Vector2D<int> screen_size;
-Vector2D<int> mouse_position;
-
 extern "C" void __cxa_pure_virtual()
 {
     while (1)
@@ -70,7 +66,6 @@ void InitializeMainWindow()
 {
     main_window = std::make_shared<ToplevelWindow>(
         160, 52, screen_config.pixel_format, "Hello Window");
-    DrawTextbox(*main_window->InnerWriter(), {0, 0}, main_window->InnerSize());
 
     main_window_layer_id = layer_manager->NewLayer()
                                .SetWindow(main_window)
@@ -94,7 +89,7 @@ void InitializeTextWindow()
     text_window_layer_id = layer_manager->NewLayer()
                                .SetWindow(text_window)
                                .SetDraggable(true)
-                               .Move({350, 200})
+                               .Move({500, 100})
                                .ID();
     layer_manager->UpDown(text_window_layer_id, std::numeric_limits<int>::max());
 }
@@ -117,21 +112,21 @@ void InputTextWindow(char c)
 
     // why add 6?
     auto pos = []()
-    { return Vector2D<int>{8 + 8 * text_window_index, 24 + 6}; };
+    { return Vector2D<int>{4 + 8 * text_window_index, 6}; };
 
-    const int max_chars = (text_window->Width() - 16) / 8;
+    const int max_chars = (text_window->InnerSize().x - 8) / 8 - 1;
     if (c == '\b' && text_window_index > 0)
     {
         DrawTextCursor(false);
         text_window_index--;
         // fill white color for 1 charactor
-        FillRectangle(*text_window->Writer(), pos(), {8, 16}, ToColor(0xffffff));
+        FillRectangle(*text_window->InnerWriter(), pos(), {8, 16}, ToColor(0xffffff));
         DrawTextCursor(true);
     }
     else if (c >= ' ' && text_window_index < max_chars)
     {
         DrawTextCursor(false);
-        WriteAscii(*text_window->Writer(), pos(), c, ToColor(0));
+        WriteAscii(*text_window->InnerWriter(), pos(), c, ToColor(0));
         text_window_index++;
         DrawTextCursor(true);
     }
@@ -141,62 +136,6 @@ void InputTextWindow(char c)
 // std::deque<Message> *main_queue;
 
 alignas(16) uint8_t kernel_main_stack[1024 * 1024];
-
-std::shared_ptr<ToplevelWindow> task_b_window;
-unsigned int task_b_window_layer_id;
-void InitializeTaskBWindow()
-{
-    task_b_window = std::make_shared<ToplevelWindow>(
-        160, 52, screen_config.pixel_format, "TaskB Window");
-    DrawTextbox(*task_b_window->InnerWriter(), {0, 0}, task_b_window->InnerSize());
-
-    task_b_window_layer_id = layer_manager->NewLayer()
-                                 .SetWindow(task_b_window)
-                                 .SetDraggable(true)
-                                 .Move({100, 100})
-                                 .ID();
-    layer_manager->UpDown(task_b_window_layer_id, std::numeric_limits<int>::max());
-}
-
-void TaskB(uint64_t task_id, int64_t data)
-{
-    printk("TaskB: task_id=%d, data=%d\n", task_id, data);
-    char str[128];
-    int count = 0;
-    __asm__("cli");
-    Task &task = task_manager->CurrentTask();
-    __asm__("sti");
-
-    while (true)
-    {
-        count++;
-        sprintf(str, "%010d", count);
-        FillRectangle(*task_b_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
-        WriteString(*task_b_window->Writer(), {24, 28}, str, {0, 0, 0});
-        Message msg{Message::kLayer, task_id};
-        msg.arg.layer.layer_id = task_b_window_layer_id;
-        msg.arg.layer.op = LayerOperation::Draw;
-        __asm__("cli");
-        task_manager->SendMessage(1, msg);
-        __asm__("sti");
-        while (true)
-        {
-            __asm__("cli");
-            auto msg = task.ReceiveMessage();
-            if (!msg)
-            {
-                task.Sleep();
-                __asm__("sti");
-                continue;
-            }
-
-            if (msg->type == Message::kLayerFinish)
-            {
-                break;
-            }
-        }
-    }
-}
 
 extern "C" void
 KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
@@ -229,31 +168,21 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     InitializeLayer();
     InitializeMainWindow();
     InitializeTextWindow();
-    InitializeTaskBWindow();
     layer_manager->Draw({{0, 0}, ScreenSize()});
 
     acpi::Initialize(acpi_table);
     InitializeLAPICTimer();
 
-    // timer_manager->AddTimer(Timer(200, 2));
-    // timer_manager->AddTimer(Timer(600, -1));
-
     char str[128];
 
     const int kTextboxCursorTimer = 1;
     const int kTimer05Sec = static_cast<int>(kTimerFreq * 0.5);
-    __asm__("cli");
     timer_manager->AddTimer(Timer{kTimer05Sec, kTextboxCursorTimer});
-    __asm__("sti");
     bool textbox_cursor_visible = false;
 
-    // memset(&task_b_ctx, 0, sizeof(task_b_ctx));
-    // oh I can do cast function to uint64!
-    printk("TaskB address:%x\n", reinterpret_cast<uint64_t>(TaskB));
     InitializeTask();
 
     Task &main_task = task_manager->CurrentTask();
-    const uint64_t taskb_id = task_manager->NewTask().InitContext(TaskB, 45).Wakeup().ID();
 
     const uint64_t task_terminal_id = task_manager->NewTask()
                                           .InitContext(TaskTerminal, 0)
@@ -271,8 +200,8 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
         __asm__("sti");
 
         sprintf(str, "%010lu", tick);
-        FillRectangle(*main_window->Writer(), {24, 28}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
-        WriteString(*main_window->Writer(), {24, 28}, str, {0, 0, 0});
+        FillRectangle(*main_window->InnerWriter(), {20, 4}, {8 * 10, 16}, {0xc6, 0xc6, 0xc6});
+        WriteString(*main_window->InnerWriter(), {20, 4}, str, {0, 0, 0});
         layer_manager->Draw(main_window_layer_id);
 
         __asm__("cli");
@@ -309,17 +238,6 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
             if (auto act = active_layer->GetActive(); act == text_window_layer_id)
             {
                 InputTextWindow(msg->arg.keyboard.ascii);
-            }
-            else if (act == task_b_window_layer_id)
-            {
-                if (msg->arg.keyboard.ascii == 's')
-                {
-                    printk("sleep TaskB: %s\n", task_manager->Sleep(taskb_id).Name());
-                }
-                else if (msg->arg.keyboard.ascii == 'w')
-                {
-                    printk("wakeup TaskB: %s\n", task_manager->Wakeup(taskb_id).Name());
-                }
             }
             else
             {

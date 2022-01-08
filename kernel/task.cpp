@@ -108,6 +108,7 @@ TaskManager::TaskManager()
 
     Task &idle = NewTask()
                      .InitContext(TaskIdle, 0)
+                     .SetLevel(0)
                      .SetRunning(true);
     running_[0].push_back(&idle);
 }

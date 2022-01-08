@@ -1,5 +1,6 @@
 #pragma once
 
+#include <deque>
 #include "layer.hpp"
 
 class Terminal

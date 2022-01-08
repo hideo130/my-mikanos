@@ -159,7 +159,6 @@ void Terminal::ExecuteLine()
 {
     char *command = &linebuf_[0];
     char *first_arg = strchr(&linebuf_[0], ' ');
-    bool valid = true;
 
     if (first_arg)
     {
@@ -197,14 +196,7 @@ void Terminal::ExecuteLine()
         Print("no such command: ");
         Print(command);
         Print("\n");
-        valid = false;
     }
-
-    // if (valid)
-    // {
-    //     cmd_history_.pop_back();
-    //     cmd_history_.push_front(linebuf_);
-    // }
 }
 
 Rectangle<int> Terminal::HistoryUpDown(int direction)
@@ -223,7 +215,7 @@ Rectangle<int> Terminal::HistoryUpDown(int direction)
     Rectangle<int> draw_area{first_pos, {8 * (kColumns - 1), 16}};
     FillRectangle(*window_->Writer(), draw_area.pos, draw_area.size, {0, 0, 0});
 
-    char *history = "";
+    const char *history = "";
     if (cmd_history_index_ >= 0)
     {
         history = &cmd_history_[cmd_history_index_][0];
@@ -262,8 +254,6 @@ void TaskTerminal(uint64_t task_id, int64_t data)
         {
             const auto area = terminal->BlinkCursor();
             Message msg = MakeLayerMessage(task_id, terminal->LayerID(), LayerOperation::DrawArea, area);
-            msg.arg.layer.layer_id = terminal->LayerID();
-            msg.arg.layer.op = LayerOperation::DrawArea;
             __asm__("cli");
             task_manager->SendMessage(1, msg);
             __asm__("sti");
