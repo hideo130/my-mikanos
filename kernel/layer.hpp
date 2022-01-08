@@ -1,6 +1,8 @@
 #pragma once
 
 #include <array>
+#include <map>
+
 
 #include "frame_buffer.hpp"
 #include "graphics.hpp"
@@ -45,6 +47,7 @@ public:
 
     void Draw(unsigned int id) const;
     void Draw(const Rectangle<int> &area) const;
+    void Draw(unsigned int id, Rectangle<int> area) const;
 
     Layer *FindLayerByPosition(Vector2D<int> mouse_position, unsigned int mouse_layer_id) const;
 
@@ -87,6 +90,20 @@ private:
 };
 
 extern ActiveLayer *active_layer;
+extern std::map<unsigned int, uint64_t> *layer_task_map;
 
 void InitializeLayer();
 void ProcessLayerMessage(const Message &msg);
+
+constexpr Message MakeLayerMessage(
+    uint64_t task_id, unsigned int layer_id,
+    LayerOperation op, const Rectangle<int> &area)
+{
+    Message msg{Message::kLayer, task_id};
+    msg.arg.layer.op = op;
+    msg.arg.layer.x = area.pos.x;
+    msg.arg.layer.y = area.pos.y;
+    msg.arg.layer.w = area.size.x;
+    msg.arg.layer.h = area.size.y;
+    return msg;
+}
