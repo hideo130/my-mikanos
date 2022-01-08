@@ -19,6 +19,9 @@ private:
     std::array<char, kLineMax> linebuf_{};
     void Scroll1();
 
+    void Print(const char *s);
+    void ExecuteLine();
+
 public:
     static const int kRows = 15, kColumns = 60;
 
@@ -27,7 +30,7 @@ public:
 
     unsigned int LayerID() const { return layer_id_; }
     Rectangle<int> BlinkCursor();
-    Rectangle<int>InputKey(uint8_t modifier, uint8_t keycode, char ascii);
+    Rectangle<int> InputKey(uint8_t modifier, uint8_t keycode, char ascii);
 };
 
 void TaskTerminal(uint64_t task_id, int64_t data);
