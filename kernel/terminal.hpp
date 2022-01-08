@@ -22,6 +22,10 @@ private:
     void Print(const char *s);
     void ExecuteLine();
 
+    std::deque<std::array<char, kLineMax>> cmd_history_{};
+    int cmd_history_index_{0};
+    Rectangle<int> HistoryUpDown(int direction);
+
 public:
     static const int kRows = 15, kColumns = 60;
 
