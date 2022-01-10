@@ -211,7 +211,8 @@ void CopyLoadSegments(Elf64_Ehdr *ehdr)
   }
 }
 
-EFI_STATUS ReadFile(EFI_FILE_PROTOCOL* file, VOID** buffer) {
+EFI_STATUS ReadFile(EFI_FILE_PROTOCOL *file, VOID **buffer)
+{
   EFI_STATUS status;
 
   UINTN file_info_size = sizeof(EFI_FILE_INFO) + sizeof(CHAR16) * 12;
@@ -219,21 +220,22 @@ EFI_STATUS ReadFile(EFI_FILE_PROTOCOL* file, VOID** buffer) {
   status = file->GetInfo(
       file, &gEfiFileInfoGuid,
       &file_info_size, file_info_buffer);
-  if (EFI_ERROR(status)) {
+  if (EFI_ERROR(status))
+  {
     return status;
   }
 
-  EFI_FILE_INFO* file_info = (EFI_FILE_INFO*)file_info_buffer;
+  EFI_FILE_INFO *file_info = (EFI_FILE_INFO *)file_info_buffer;
   UINTN file_size = file_info->FileSize;
 
   status = gBS->AllocatePool(EfiLoaderData, file_size, buffer);
-  if (EFI_ERROR(status)) {
+  if (EFI_ERROR(status))
+  {
     return status;
   }
 
   return file->Read(file, &file_size, *buffer);
 }
-
 
 EFI_STATUS OpenBlockIoProtocolForLoadedImage(
     EFI_HANDLE image_handle, EFI_BLOCK_IO_PROTOCOL **block_io)
@@ -438,25 +440,6 @@ EFI_STATUS EFIAPI UefiMain(
     Halt();
   }
 
-  // #@@range_begin(exit_bs)
-  status = gBS->ExitBootServices(image_handle, memmap.map_key);
-  if (EFI_ERROR(status))
-  {
-    status = GetMemoryMap(&memmap);
-    if (EFI_ERROR(status))
-    {
-      Print(L"failed to get memory map: %r\n", status);
-      Halt();
-    }
-    status = gBS->ExitBootServices(image_handle, memmap.map_key);
-    if (EFI_ERROR(status))
-    {
-      Print(L"Could not exit boot service: %r\n", status);
-      Halt();
-    }
-  }
-  // #@@range_end(exit_bs)
-
   VOID *volume_image;
   EFI_FILE_PROTOCOL *volume_file;
   status = root_dir->Open(root_dir, &volume_file, L"\\fat_disk", EFI_FILE_MODE_READ, 0);
@@ -489,13 +472,34 @@ EFI_STATUS EFIAPI UefiMain(
     Print(L"Reading %lu bytes (Present %d, BlockSize %u, LastBlock %u)\n",
           volume_bytes, media->MediaPresent, media->BlockSize, media->LastBlock);
     status = ReadBlocks(block_io, media->MediaId, volume_bytes, &volume_image);
-    if (EFIERR(status))
+    if (EFI_ERROR(status))
     {
       Print(L"failed to read blocks: %r\n", status);
       Halt();
     }
   }
 
+  Print(L"Exitting boot service ...");
+  // #@@range_begin(exit_bs)
+  status = gBS->ExitBootServices(image_handle, memmap.map_key);
+  if (EFI_ERROR(status))
+  {
+    status = GetMemoryMap(&memmap);
+    if (EFI_ERROR(status))
+    {
+      Print(L"failed to get memory map: %r\n", status);
+      Halt();
+    }
+    status = gBS->ExitBootServices(image_handle, memmap.map_key);
+    if (EFI_ERROR(status))
+    {
+      Print(L"Could not exit boot service: %r\n", status);
+      Halt();
+    }
+  }
+  
+  // Print(L"Done");
+  
   // #@@range_begin(call_kernel)
 
   // Entry Point Addr is located
