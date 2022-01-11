@@ -1,3 +1,4 @@
+#include "fat.hpp"
 #include "font.hpp"
 #include "logger.hpp"
 #include "task.hpp"
@@ -188,6 +189,41 @@ void Terminal::ExecuteLine()
             sprintf(s, "%02x:%02x.%d vend=%04x head=%02x class=%02x.%02x.%02x\n",
                     dev.bus, dev.device, dev.function, vendor_id, dev.header_type,
                     dev.class_code.base, dev.class_code.sub, dev.class_code.interface);
+            Print(s);
+        }
+    }
+    else if (strcmp(command, "ls") == 0)
+    {
+        auto root_dir_entries = fat::GetSectorByCluster<fat::DirectoryEntry>(
+            fat::boot_volume_image->root_clus);
+        auto entries_per_cluster = fat::boot_volume_image->bytes_per_sec / sizeof(fat::DirectoryEntry) *
+                                   fat::boot_volume_image->sec_per_clus;
+        char base[9], ext[4];
+        char s[64];
+        for (int i = 0; i < entries_per_cluster; i++)
+        {
+            ReadName(root_dir_entries[i], base, ext);
+            if (base[0] == 0x00)
+            {
+                break;
+            }
+            else if (static_cast<uint8_t>(base[0]) == 0xe5)
+            {
+                continue;
+            }
+            else if (root_dir_entries[i].attr == (uint8_t)fat::Attribute::kLongName)
+            {
+                continue;
+            }
+
+            if (ext[0])
+            {
+                sprintf(s, "%s.%s\n", base, ext);
+            }
+            else
+            {
+                sprintf(s, "%s\n", base);
+            }
             Print(s);
         }
     }

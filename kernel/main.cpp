@@ -9,6 +9,7 @@
 
 #include "asmfunc.h"
 #include "acpi.hpp"
+#include "fat.hpp"
 #include "frame_buffer_config.hpp"
 #include "graphics.hpp"
 #include "interrupt.hpp"
@@ -28,11 +29,7 @@
 #include "pci.hpp"
 #include "window.hpp"
 #include "logger.hpp"
-#include "usb/memory.hpp"
-#include "usb/device.hpp"
-#include "usb/classdriver/mouse.hpp"
 #include "usb/xhci/xhci.hpp"
-#include "usb/xhci/trb.hpp"
 
 // void *operator new(std::size_t size, void *buf)
 // {
@@ -164,7 +161,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     printk("memory_map: %p\n", &memory_map);
 
     InitializeInterrupt();
-
+    fat::Initialize(volume_image);
     InitializePCI();
 
     InitializeLayer();
