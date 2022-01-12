@@ -20,6 +20,7 @@ private:
     std::array<char, kLineMax> linebuf_{};
     void Scroll1();
 
+    void Print(char c);
     void Print(const char *s);
     void ExecuteLine();
 

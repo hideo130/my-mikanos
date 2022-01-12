@@ -117,9 +117,8 @@ void Terminal::Scroll1()
     FillRectangle(*window_->InnerWriter(), {4, 4 + 16 * cursor_.y}, {8 * kColumns, 16}, {0, 0, 0});
 }
 
-void Terminal::Print(const char *s)
+void Terminal::Print(char c)
 {
-    DrawCursor(false);
 
     auto newline = [this]()
     {
@@ -133,27 +132,35 @@ void Terminal::Print(const char *s)
             Scroll1();
         }
     };
-    while (*s)
+
+    if (c == '\n')
     {
-        if (*s == '\n')
+        newline();
+    }
+    else
+    {
+        WriteAscii(*window_->Writer(), CalcCursorPos(), c, {255, 255, 255});
+        if (cursor_.x == kColumns - 1)
         {
             newline();
         }
         else
         {
-            WriteAscii(*window_->Writer(), CalcCursorPos(), *s, {255, 255, 255});
-            if (cursor_.x == kColumns - 1)
-            {
-                newline();
-            }
-            else
-            {
-                cursor_.x++;
-            }
+            cursor_.x++;
         }
+    }
+}
+
+void Terminal::Print(const char *s)
+{
+    DrawCursor(false);
+    while (*s)
+    {
+        Print(*s);
         s++;
     }
-    DrawCursor(true);
+
+    DrawCursor(false);
 }
 
 void Terminal::ExecuteLine()
@@ -211,7 +218,7 @@ void Terminal::ExecuteLine()
             {
                 continue;
             }
-            else if (root_dir_entries[i].attr == (uint8_t)fat::Attribute::kLongName)
+            else if (root_dir_entries[i].attr == fat::Attribute::kLongName)
             {
                 continue;
             }
@@ -225,6 +232,38 @@ void Terminal::ExecuteLine()
                 sprintf(s, "%s\n", base);
             }
             Print(s);
+        }
+    }
+    else if (strcmp(command, "cat") == 0)
+    {
+        char s[64];
+
+        auto file_entry = fat::FindFile(first_arg);
+        if (!file_entry)
+        {
+            sprintf(s, "no such file: %s\n", first_arg);
+            Print(s);
+        }
+        else
+        {
+            auto cluster = file_entry->FirstCluster();
+            auto remain_bytes = file_entry->file_size;
+
+            DrawCursor(false);
+            while (cluster != 0 && cluster != fat::kEndOfClusterchain)
+            {
+                char *p = fat::GetSectorByCluster<char>(cluster);
+
+                int i = 0;
+                for (; i < fat::bytes_per_cluster && i < remain_bytes; i++)
+                {
+                    Print(*p);
+                    p++;
+                }
+                remain_bytes -= i;
+                cluster = fat::NextCluster(cluster);
+            }
+            DrawCursor(true);
         }
     }
     else if (command[0] != 0)

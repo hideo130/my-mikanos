@@ -49,7 +49,7 @@ namespace fat
     struct DirectoryEntry
     {
         unsigned char name[11];
-        uint8_t attr;
+        Attribute attr;
         uint8_t nt_resv;
         uint8_t crt_time_tenth;
         uint16_t crt_time;
@@ -60,9 +60,17 @@ namespace fat
         uint16_t wrt_date;
         uint16_t fst_clus_lo;
         uint32_t file_size;
+
+        uint32_t FirstCluster() const
+        {
+            return fst_clus_lo |
+                   (static_cast<uint32_t>(fst_clus_hi) << 16);
+        }
+
     } __attribute__((packed));
 
     extern BPB *boot_volume_image;
+    extern unsigned long bytes_per_cluster;
     void Initialize(void *volume_image);
 
     uintptr_t GetClusterAddr(unsigned long cluster);
@@ -74,4 +82,7 @@ namespace fat
 
     void ReadName(const DirectoryEntry &entry, char *base, char *ext);
 
+    unsigned long NextCluster(unsigned long cluster);
+    static const unsigned long kEndOfClusterchain = 0x0fffffflu;
+    DirectoryEntry *FindFile(const char *name, unsigned long directory_cluster = 0);
 }
