@@ -3,3 +3,4 @@ disk.img
 kernel.elf
 *.d
 *.bin
+onlyhlt
