@@ -3,4 +3,6 @@ disk.img
 kernel.elf
 *.d
 *.bin
-onlyhlt
+*/onlyhlt/onlyhlt
+*/rpn/rpn
+a.out
