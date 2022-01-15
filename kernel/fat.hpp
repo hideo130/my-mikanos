@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 
 namespace fat
@@ -85,4 +86,6 @@ namespace fat
     unsigned long NextCluster(unsigned long cluster);
     static const unsigned long kEndOfClusterchain = 0x0fffffflu;
     DirectoryEntry *FindFile(const char *name, unsigned long directory_cluster = 0);
+
+    size_t LoadFile(void *buf, size_t len, const DirectoryEntry &entry);
 }

@@ -85,12 +85,12 @@ void BitmapMemoryManager::SetBit(FrameID frame, bool allocated)
     }
 }
 
+BitmapMemoryManager *memory_manager;
+
 extern "C" caddr_t program_break, program_break_end;
 namespace
 {
-    
-    char memory_manager_buf[sizeof(BitmapMemoryManager)];
-    BitmapMemoryManager *memory_manager;
+    char memory_manager_buf[sizeof(BitmapMemoryManager)];    
 
     Error InitializeHeap(BitmapMemoryManager &memory_manager)
     {
@@ -109,7 +109,7 @@ namespace
 void InitializeMemoryManager(const MemoryMap &memory_map)
 {
     ::memory_manager = new (memory_manager_buf) BitmapMemoryManager;
-        const auto memory_map_base = reinterpret_cast<uintptr_t>(memory_map.buffer);
+    const auto memory_map_base = reinterpret_cast<uintptr_t>(memory_map.buffer);
     uintptr_t available_end = 0;
     for (uintptr_t iter = memory_map_base;
          iter < memory_map_base + memory_map.map_size;
@@ -149,5 +149,4 @@ void InitializeMemoryManager(const MemoryMap &memory_map)
             err.Name(), err.File(), err.Line());
         exit(1);
     }
-
 }

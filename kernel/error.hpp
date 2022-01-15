@@ -31,6 +31,7 @@ public:
         kNoPCIMSI,
         kUnknownPixelFormat,
         kNoSuchTask,
+        kInvalidFormat,
         kLastOfCode, // この列挙子は常に最後に配置する
     };
 
@@ -59,6 +60,7 @@ private:
         "kNoPCIMSI",
         "kNoSuchTask",
         "kUnknownPixelFormat",
+        "kInvalidFormat",
     };
     static_assert(Error::Code::kLastOfCode == code_names_.size());
 

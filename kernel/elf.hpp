@@ -25,12 +25,18 @@ typedef struct
     Elf64_Off e_shoff;
     Elf64_Word e_flags;
     Elf64_Half e_ehsize;
-    Elf64_Half e_phentsize;
-    Elf64_Half e_phnum;
+    Elf64_Half e_phentsize; // program header is array. size of array's element
+    Elf64_Half e_phnum; // num of program header array
     Elf64_Half e_shentsize;
     Elf64_Half e_shnum;
     Elf64_Half e_shsrndx;
 } Elf64_Ehdr;
+
+#define ET_NONE 0
+#define ET_REL  1
+#define ET_EXEC 2
+#define ET_DYN  3
+#define ET_CORE 4
 
 // program header
 typedef struct
