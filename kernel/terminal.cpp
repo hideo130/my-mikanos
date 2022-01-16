@@ -14,7 +14,8 @@ namespace
     {
         std::vector<char *> argv;
         argv.push_back(command);
-        if(!first_arg){
+        if (!first_arg)
+        {
             return argv;
         }
 
@@ -101,7 +102,6 @@ namespace
         return {child_map, MAKE_ERROR(Error::kSuccess)};
     }
 
-
     WithError<size_t> SetupPageMap(
         PageMapEntry *page_map, int page_map_level, LinearAddress4Level addr, size_t num_4kpages)
     {
@@ -153,7 +153,6 @@ namespace
         return SetupPageMap(pml4_table, 4, addr, num_4kpages).error;
     }
 
-
     Error CopyLoadSegments(Elf64_Ehdr *ehdr)
     {
         auto phdr = GetProgramHeader(ehdr);
@@ -179,7 +178,6 @@ namespace
         return MAKE_ERROR(Error::kSuccess);
     }
 
-
     Error LoadElf(Elf64_Ehdr *ehdr)
     {
         if (ehdr->e_type != ET_EXEC)
@@ -203,7 +201,6 @@ namespace
     }
 
     static_assert(kBytesPerFrame >= 4096);
-
 
     Error CleanPageMap(PageMapEntry *page_map, int page_map_level)
     {
@@ -519,9 +516,11 @@ void Terminal::ExecuteLine()
             Print(command);
             Print("\n");
         }
-        else
+        else if (auto err = ExecuteFile(*file_entry, command, first_arg))
         {
-            ExecuteFile(*file_entry, command, first_arg);
+            Print("failed to exec file: ");
+            Print(err.Name());
+            Print("\n");
         }
     }
 }

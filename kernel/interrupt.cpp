@@ -2,6 +2,8 @@
 #include <array>
 
 #include "asmfunc.h"
+#include "font.hpp"
+#include "graphics.hpp"
 #include "interrupt.hpp"
 #include "segment.hpp"
 #include "task.hpp"
@@ -33,9 +35,65 @@ namespace
         NotifyEndOfInterrupt();
     }
 
-    __attribute__((interrupt)) void IntHandlerLAPICTimer(InterruptFrame* frame){
+    __attribute__((interrupt)) void IntHandlerLAPICTimer(InterruptFrame *frame)
+    {
         LAPICTimerOnInterrupt();
     }
+    void PrintHex(uint64_t value, int width, Vector2D<int> pos)
+    {
+        for (int i = 0; i < width; i++)
+        {
+            int x = (value >> 4 * (width - i - 1)) & 0xfu;
+            if (x >= 10)
+            {
+                x += 'a' - 10;
+            }
+            else
+            {
+                x += '0';
+            }
+            WriteAscii(*screen_writer, pos + Vector2D<int>{8 * i, 0}, x, {0, 0, 0});
+        }
+    }
+
+#define FaultHandlerWithError(fault_name)                                                              \
+    __attribute__((interrupt)) void IntHandler##fault_name(InterruptFrame *frame, uint64_t error_code) \
+    {                                                                                                  \
+        PrintFrame(frame, "#" #fault_name);                                                            \
+        WriteWtring(*screen_writer, {500 + 8 * 4, 16 * 4});                                            \
+        PrintHex(error_code, 16, {500 + 8 * 4, 16 * 4});                                               \
+        while (true)                                                                                   \
+            __asm__("hlt");                                                                            \
+    }
+
+#define FaultHandlerNoError(fault_name)                                             \
+    __attribute__(((interrupt))) void IntHandler##fault_name(InterruptFrame *frame) \
+    {                                                                               \
+        PrintFrame(frame, "#", #fault_name);                                        \
+        while (true)                                                                \
+            __asm__("hlt");                                                         \
+    }
+
+    FaultHandlerNoError(DE);
+    FaultHandlerNoError(DE);
+    FaultHandlerNoError(DB);
+    FaultHandlerNoError(BP);
+    FaultHandlerNoError(OF);
+    FaultHandlerNoError(BR);
+    FaultHandlerNoError(UD);
+    FaultHandlerNoError(NM);
+    FaultHandlerWithError(DF);
+    FaultHandlerWithError(TS);
+    FaultHandlerWithError(NP);
+    FaultHandlerWithError(SS);
+    FaultHandlerWithError(GP);
+    FaultHandlerWithError(PF);
+    FaultHandlerNoError(MF);
+    FaultHandlerWithError(AC);
+    FaultHandlerNoError(MC);
+    FaultHandlerNoError(XM);
+    FaultHandlerNoError(VE);
+
 }
 
 void InitializeInterrupt()

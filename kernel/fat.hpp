@@ -33,7 +33,7 @@ namespace fat
         uint8_t boot_sig;
         uint32_t vol_ld;
         char vol_lab[11];
-        uint8_t fil_sys_type[8];
+        char fil_sys_type[8];
     } __attribute__((packed));
 
     enum class Attribute : uint8_t
