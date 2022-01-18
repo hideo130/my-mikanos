@@ -1,5 +1,10 @@
 #include <cstring>
 #include <cstdlib>
+#include "../../kernel/graphics.hpp"
+
+auto &printk = *reinterpret_cast<int (*)(const char *, ...)>(0x000000000010b6f0);
+auto &fill_rect = *reinterpret_cast<decltype(FillRectangle) *>(0x000000000010fd90);
+auto &scrn_writer = *reinterpret_cast<decltype(screen_writer) *>(0x0000000000271058);
 
 int stack_ptr;
 long stack[100];
@@ -27,13 +32,15 @@ extern "C" int main(int argc, char **argv)
         {
             long b = Pop();
             long a = Pop();
-            Push (a + b);
+            Push(a + b);
+            printk("[%d] <- %ld\n", stack_ptr, a + b);
         }
         else if (strcmp(argv[i], "-") == 0)
         {
             long b = Pop();
             long a = Pop();
-            Push (a - b);
+            Push(a - b);
+            printk("[%d] <- %ld\n", stack_ptr, a - b);
         }
         else
         {
@@ -41,6 +48,7 @@ extern "C" int main(int argc, char **argv)
             Push(a);
         }
     }
+    fill_rect(*scrn_writer, Vector2D<int>{100, 10}, Vector2D<int>{200, 200}, ToColor(0x00ff00));
 
     if (stack_ptr < 0)
     {
