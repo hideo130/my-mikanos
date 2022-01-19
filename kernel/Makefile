@@ -16,7 +16,7 @@ CFLAGS += -O0 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone
 CXXFLAGS += -O0 -Wall -g --target=x86_64-elf -ffreestanding -mno-red-zone \
 			-fno-exceptions -fno-rtti -std=c++17
 
-LDFLAGS += --entry KernelMain -z norelro --image-base 0x100000 --static # -z separate-code
+LDFLAGS += --entry KernelMain -z norelro --image-base 0x100000 --static -z separate-code
 CPPFLAGS+= \
 	-I$BASEDIR/include/c++/v1 -I$BASEDIR/include -I$BASEDIR/include/freetype2 \
 	-I$EDK2DIR/MdePkg/Include -I$EDK2DIR/MdePkg/Include/X64 \
