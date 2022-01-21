@@ -159,6 +159,7 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
 
     InitializeMemoryManager(memory_map);
     printk("memory_map: %p\n", &memory_map);
+    InitializeTSS();
 
     InitializeInterrupt();
     fat::Initialize(volume_image);
