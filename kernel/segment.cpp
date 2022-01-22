@@ -7,7 +7,7 @@ namespace
     std::array<SegmentDescriptor, 7> gdt;
     std::array<uint32_t, 26> tss;
 
-    static_assert((kTTS >> 3) + 1 < gdt.size());
+    static_assert((kTSS >> 3) + 1 < gdt.size());
 }
 
 void SetCodeSegment(SegmentDescriptor &desc,
@@ -93,5 +93,5 @@ void InitializeTSS()
     gdt[(kTSS >> 3) + 1].data = tss_addr >> 32;
 
     LoadTR(kTSS);
-    
+
 }

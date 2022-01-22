@@ -28,7 +28,8 @@ bool TimerManager::Tick()
             break;
         }
 
-        if(t.Value() == kTaskTimerValue){
+        if (t.Value() == kTaskTimerValue)
+        {
             task_timer_timeout = true;
             timers_.pop();
             timers_.push(Timer{tick_ + kTaskTimerPeriod, kTaskTimerValue});
@@ -49,13 +50,14 @@ bool TimerManager::Tick()
 TimerManager *timer_manager;
 unsigned long lapic_timer_freq;
 
-void LAPICTimerOnInterrupt()
+extern "C" void LAPICTimerOnInterrupt(const TaskContext &ctx_stack)
 {
     const bool task_timer_timeout = timer_manager->Tick();
     NotifyEndOfInterrupt();
 
-    if(task_timer_timeout){
-        task_manager->SwitchTask();
+    if (task_timer_timeout)
+    {
+        task_manager->SwitchTask(ctx_stack);
     }
 }
 
@@ -81,8 +83,8 @@ void InitializeLAPICTimer()
     StopLAPICTimer();
 
     lapic_timer_freq = static_cast<unsigned long>(elapsed) * 10;
-    
-    divide_config = 0b1011; // divide 1:1    
+
+    divide_config = 0b1011;                                   // divide 1:1
     lvt_timer = (0b010 << 16) | InterruptVector::kLAPICTimer; // not-masked, periodic
     initial_count = lapic_timer_freq / kTimerFreq;
 }

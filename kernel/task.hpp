@@ -74,7 +74,7 @@ public:
 
     TaskManager();
     Task &NewTask();
-    void SwitchTask(bool current_sleep = false);
+    void SwitchTask(const TaskContext& current_ctx);
 
     void Sleep(Task *task);
     Error Sleep(uint64_t id);
@@ -85,6 +85,7 @@ public:
     Task &CurrentTask();
     Error SendMessage(uint64_t id, const Message &msg);
     void ChangeLevelRunning(Task *task, int level);
+    Task *RotateCurrentRunQueue(bool current_sleep);
 
 private:
     std::vector<std::unique_ptr<Task>> tasks_{};

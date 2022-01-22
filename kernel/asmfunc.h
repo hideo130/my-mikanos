@@ -16,4 +16,7 @@ extern "C"
     void SwitchContext(void *next_ctx, void *current_ctx);
     void CallApp(int argc, char** argv, uint16_t cs, uint16_t ss, uint64_t rip, uint64_t rsp);
     void LoadTR(uint16_t sel);
+    void IntHandlerLAPICTimer();
+    void SwitchContext(void* next_ctx, void* current_ctx);
+    void RestoreContext(void* task_context);
 }

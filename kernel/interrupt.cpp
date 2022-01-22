@@ -35,10 +35,6 @@ namespace
         NotifyEndOfInterrupt();
     }
 
-    __attribute__((interrupt)) void IntHandlerLAPICTimer(InterruptFrame *frame)
-    {
-        LAPICTimerOnInterrupt();
-    }
     void PrintHex(uint64_t value, int width, Vector2D<int> pos)
     {
         for (int i = 0; i < width; i++)
