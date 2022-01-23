@@ -1,16 +1,14 @@
 bits 64
 section .text
 
-global SyscallLogString
-SyscallLogString:
-    mov eax, 0x80000000
+%macro define_syscall 2
+global Syscall%1
+Syscall%1:
+    mov eax, %2
     mov r10, rcx
     syscall
     ret
 
-global SyscallPutString
-SyscallPutString:
-    mov eax, 0x80000001
-    mov r10, rcx
-    syscall
-    ret
+define_syscall LogString, 0x80000000
+define_syscall PutString, 0x80000001
+define_syscall Exit, 0x80000002

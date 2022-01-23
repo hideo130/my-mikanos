@@ -2,7 +2,6 @@
 #include <cstdlib>
 #include <cstdint>
 #include <cstdio>
-#include "../../kernel/logger.hpp"
 
 // auto &printk = *reinterpret_cast<int (*)(const char *, ...)>(0x000000000010b6f0);
 // auto &fill_rect = *reinterpret_cast<decltype(FillRectangle) *>(0x000000000010fd90);
@@ -24,8 +23,7 @@ void Push(long value)
     stack[stack_ptr] = value;
 }
 
-extern "C" int64_t SyscallLogString(LogLevel, const char *);
-
+extern "C" void SyscallExit(int exit_code);
 
 extern "C" int main(int argc, char **argv)
 {
@@ -39,21 +37,17 @@ extern "C" int main(int argc, char **argv)
             long a = Pop();
             Push(a + b);
             // printk("[%d] <- %ld\n", stack_ptr, a + b);
-            SyscallLogString(kWarn, "+");
         }
         else if (strcmp(argv[i], "-") == 0)
         {
             long b = Pop();
             long a = Pop();
             Push(a - b);
-            // printk("[%d] <- %ld\n", stack_ptr, a - b);
-            SyscallLogString(kWarn, "-");
         }
         else
         {
             long a = atol(argv[i]);
             Push(a);
-            SyscallLogString(kWarn, "#");
         }
     }
     // fill_rect(*scrn_writer, Vector2D<int>{100, 10}, Vector2D<int>{200, 200}, ToColor(0x00ff00));
@@ -63,11 +57,10 @@ extern "C" int main(int argc, char **argv)
         return 0;
     }
     long result = 0;
-    if(stack_ptr>=0){
+    if (stack_ptr >= 0)
+    {
         result = Pop();
     }
     printf("%ld\n", result);
-    while (1)
-        ;
-    // return static_cast<int>(Pop());
+    SyscallExit(static_cast<int>(result));
 }

@@ -275,7 +275,7 @@ namespace
     }
 }
 
-Terminal::Terminal(uint64_t task_id): task_id_{task_id}
+Terminal::Terminal(uint64_t task_id) : task_id_{task_id}
 {
     window_ = std::make_shared<ToplevelWindow>(
         kColumns * 8 + 8 + ToplevelWindow::kMarginX,
@@ -449,7 +449,7 @@ void Terminal::Print(const char *s, std::optional<size_t> len)
     Rectangle<int> draw_area{draw_pos, draw_size};
     Message msg = MakeLayerMessage(task_id_, LayerID(), LayerOperation::DrawArea, draw_area);
     __asm__("cli");
-    task_manager->SendMessage(1, msg);    
+    task_manager->SendMessage(1, msg);
     __asm__("sti");
 }
 
@@ -617,15 +617,20 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry &file_entry, char *command
         return err;
     }
 
-    auto entry_addr = elf_header->e_entry;
-    CallApp(argc.value, argv, 4 << 3 | 3, 3 << 3 | 3, entry_addr, stack_frame_addr.value + 4096 - 8);
+    __asm__("cli");
+    auto& task = task_manager->CurrentTask();
+    __asm__("sti");
 
-    /*
-    auto ret = f(argv.size(), &argv[0]);
+    auto entry_addr = elf_header->e_entry;
+    // Expression 3<<3 | 3 is same for table 20.3
+    int ret = CallApp(argc.value, argv, 3 << 3 | 3, entry_addr,
+                      stack_frame_addr.value + 4096 - 8,
+                      &task.OSStackPointer());
+
     char s[64];
     sprintf(s, "app exited. ret = %d\n", ret);
     Print(s);
-    */
+
     const auto addr_first = GetFirstLoadAddress(elf_header);
     if (auto err = CleanPageMaps(LinearAddress4Level{addr_first}))
     {
