@@ -1,6 +1,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <cstdint>
+#include <cstdio>
 #include "../../kernel/logger.hpp"
 
 // auto &printk = *reinterpret_cast<int (*)(const char *, ...)>(0x000000000010b6f0);
@@ -24,6 +25,7 @@ void Push(long value)
 }
 
 extern "C" int64_t SyscallLogString(LogLevel, const char *);
+
 
 extern "C" int main(int argc, char **argv)
 {
@@ -60,8 +62,11 @@ extern "C" int main(int argc, char **argv)
     {
         return 0;
     }
-
-    SyscallLogString(kWarn, "\nhello, this is rpn\n");
+    long result = 0;
+    if(stack_ptr>=0){
+        result = Pop();
+    }
+    printf("%ld\n", result);
     while (1)
         ;
     // return static_cast<int>(Pop());

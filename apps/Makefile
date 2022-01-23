@@ -13,5 +13,9 @@ $(TARGET): $(OBJS) Makefile
 %.o: %.cpp Makefile
 	clang++ $(CPPFLAGS) $(CXXFLAGS) -c $< -o $@
 
+%.o: %.cpp Makefile
+	clang $(CPPFLAGS) $(CFLAGS) -c $< -o $@
+
+
 %.o: %.asm Makefile
 	nasm -f elf64 -o $@ $<
