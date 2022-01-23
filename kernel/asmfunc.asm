@@ -265,3 +265,35 @@ global LoadTR
 LoadTR: ; void LoadTR(uint16_t sel);
     ltr di
     ret
+
+global WriteMSR
+WriteMSR: ; void WriteMSR(uint32_t msr, uint64_t value);
+    mov rdx, rsi
+    shr rdx, 32
+    mov eax, esi
+    mov ecx, edi
+    wrmsr
+    ret
+
+extern syscall_table
+global SyscallEntry
+SyscallEntry: ; void SyscallEntry();
+    push rbp
+    push rcx ; original RIP
+    push r11 ; original RFLAGS
+
+    mov rcx, r10
+    and eax, 0x7fffffff
+    mov rbp, rsp
+    and rsp, 0xfffffffffffffff0
+
+    call [syscall_table + 8 * eax]
+    ; rbx, r12-15 is calee-saved, so caller doesn't save them
+    ; rax is for return value so caller doesn't save it.
+
+    mov rsp, rbp
+
+    pop r11
+    pop rcx
+    pop rbp
+    o64 sysret

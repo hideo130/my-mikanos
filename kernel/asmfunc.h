@@ -19,4 +19,6 @@ extern "C"
     void IntHandlerLAPICTimer();
     void SwitchContext(void* next_ctx, void* current_ctx);
     void RestoreContext(void* task_context);
+    void WriteMSR(uint32_t msr, uint64_t value);
+    void SyscallEntry(void);
 }

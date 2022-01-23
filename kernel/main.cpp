@@ -20,6 +20,7 @@
 #include "mouse.hpp"
 #include "queue.hpp"
 #include "segment.hpp"
+#include "syscall.hpp"
 #include "task.hpp"
 #include "terminal.hpp"
 #include "timer.hpp"
@@ -179,6 +180,8 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
     const int kTimer05Sec = static_cast<int>(kTimerFreq * 0.5);
     timer_manager->AddTimer(Timer{kTimer05Sec, kTextboxCursorTimer});
     bool textbox_cursor_visible = false;
+
+    InitializeSyscall();
 
     InitializeTask();
 
