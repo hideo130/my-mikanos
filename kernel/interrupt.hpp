@@ -71,3 +71,5 @@ struct InterruptFrame
 void NotifyEndOfInterrupt();
 
 void InitializeInterrupt();
+
+const int kISTForTimer = 1; // index of the interrupt stack table
