@@ -8,6 +8,7 @@ Syscall%1:
     mov r10, rcx
     syscall
     ret
+%endmacro
 
 define_syscall LogString, 0x80000000
 define_syscall PutString, 0x80000001
