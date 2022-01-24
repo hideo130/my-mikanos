@@ -5,4 +5,6 @@ kernel.elf
 *.bin
 */onlyhlt/onlyhlt
 */rpn/rpn
+*/large/large
+*/winhello/winhello
 a.out
