@@ -10,5 +10,5 @@ extern "C" void main(int argc, char **argv)
     {
         exit_code = atoi(argv[1]);
     }
-    SyscallExit(exit_code);
+    exit(exit_code);
 }
