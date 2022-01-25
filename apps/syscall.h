@@ -32,6 +32,8 @@ extern "C"
     struct SyscallResult SyscallWinFillRectangle(uint64_t flags_layer_id, int x, int y, int w, int h, uint32_t color);
     struct SyscallTimerResult SyscallGetCurrentTick();
     struct SyscallResult SyscallWinRedraw(uint64_t flags_layer_id);
+    struct SyscallResult SyscallWinDrawLine(uint64_t flags_layer_id, int x0, int y0, int x1, int y1, uint32_t color);
+    
 #ifdef __cplusplus    
 } // extern "C"
 #endif
