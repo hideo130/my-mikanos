@@ -3,7 +3,6 @@
 #include <array>
 #include <map>
 
-
 #include "frame_buffer.hpp"
 #include "graphics.hpp"
 #include "message.hpp"
@@ -64,6 +63,7 @@ public:
     void Hide(unsigned int id);
     Layer *FindLayer(unsigned int id);
     int GetHeight(unsigned int id);
+    void RemoveLayer(unsigned int id);
 
 private:
     FrameBuffer *screen_{nullptr};
