@@ -10,6 +10,7 @@ extern "C"
 #endif
 
 #include "../kernel/logger.hpp"
+#include "../kernel/app_event.hpp"
 
     struct SyscallResult
     {
@@ -34,6 +35,7 @@ extern "C"
     struct SyscallResult SyscallWinRedraw(uint64_t flags_layer_id);
     struct SyscallResult SyscallWinDrawLine(uint64_t flags_layer_id, int x0, int y0, int x1, int y1, uint32_t color);
     struct SyscallResult SyscallCloseWindow(uint64_t layer_id);
+    struct SyscallResult SyscallReadEvent(struct AppEvent *events, size_t len);
 
 #ifdef __cplusplus
 } // extern "C"
