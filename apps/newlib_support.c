@@ -56,3 +56,30 @@ void _exit(int status)
 {
   SyscallExit(status);
 }
+
+int getpid(void)
+{
+  return 1;
+}
+
+int kill(int pid, int sig)
+{
+  errno = EINVAL;
+  return -1;
+}
+
+int posix_memalign(void **memptr, size_t alignment, size_t size)
+{
+  errno = EINVAL;
+  return -1;
+}
+
+void __gxx_personality_v0()
+{
+  errno = EPERM;
+}
+
+void __cxa_begin_catch()
+{
+  errno = EPERM;
+}

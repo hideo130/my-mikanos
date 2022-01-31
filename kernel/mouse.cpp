@@ -1,5 +1,6 @@
 #include "layer.hpp"
 #include "mouse.hpp"
+#include "task.hpp"
 #include "window.hpp"
 #include "usb/classdriver/mouse.hpp"
 
@@ -86,7 +87,9 @@ void Mouse::OnInterrupt(uint8_t buttons, int8_t displacement_x, int8_t displacem
         {
             drag_layer_id_ = layer->ID();
             active_layer->Activate(layer->ID());
-        }else{
+        }
+        else
+        {
             active_layer->Activate(0);
         }
     }
@@ -101,6 +104,12 @@ void Mouse::OnInterrupt(uint8_t buttons, int8_t displacement_x, int8_t displacem
     {
         drag_layer_id_ = 0;
     }
+
+    if (drag_layer_id_ == 0)
+    {
+        SendMouseMessage(newpos, posdiff, buttons);
+    }
+
     previous_buttons_ = buttons;
 }
 
@@ -126,4 +135,33 @@ void InitializeMouse()
     };
 
     active_layer->SetMouseLayer(mouse_layer_id);
+}
+
+void SendMouseMessage(Vector2D<int> newpos, Vector2D<int> posdiff,
+                      uint8_t buttons)
+{
+    const auto act = active_layer->GetActive();
+    if (!act)
+    {
+        return;
+    }
+    const auto layer = layer_manager->FindLayer(act);
+
+    const auto task_it = layer_task_map->find(act);
+    if (task_it == layer_task_map->end())
+    {
+        return;
+    }
+
+    if (posdiff.x != 0 || posdiff.y != 0)
+    {
+        const auto relpos = newpos - layer->GetPosition();
+        Message msg{Message::kMouseMove};
+        msg.arg.mouse_move.x = relpos.x;
+        msg.arg.mouse_move.y = relpos.y;
+        msg.arg.mouse_move.dx = posdiff.x;
+        msg.arg.mouse_move.dy = posdiff.y;
+        msg.arg.mouse_move.buttons = buttons;
+        task_manager->SendMessage(task_it->second, msg);
+    }
 }
