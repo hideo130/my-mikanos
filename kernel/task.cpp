@@ -130,7 +130,7 @@ void TaskManager::SwitchTask(const TaskContext &current_ctx)
     }
 }
 
-Task* TaskManager::RotateCurrentRunQueue(bool current_sleep)
+Task *TaskManager::RotateCurrentRunQueue(bool current_sleep)
 {
     auto &level_queue = running_[current_level_];
     Task *current_task = level_queue.front();
@@ -170,7 +170,7 @@ void TaskManager::Sleep(Task *task)
 
     if (task == running_[current_level_].front())
     {
-        Task* curretn_task = RotateCurrentRunQueue(true);
+        Task *curretn_task = RotateCurrentRunQueue(true);
         SwitchContext(&CurrentTask().Context(), &curretn_task->Context());
         return;
     }
@@ -292,4 +292,9 @@ void InitializeTask()
     timer_manager->AddTimer(
         Timer{timer_manager->CurrentTick() + kTaskTimerPeriod, kTaskTimerValue});
     __asm__("sti");
+}
+
+__attribute__((no_caller_saved_registers)) extern "C" uint64_t GetCurrentTaskOSStackPointer()
+{
+    return task_manager->CurrentTask().OSStackPointer();
 }

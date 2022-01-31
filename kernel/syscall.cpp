@@ -309,7 +309,7 @@ extern "C" std::array<SyscallFuncType *, 11> syscall_table{
     /* 0x07 */ syscall::WinRedraw,
     /* 0x08 */ syscall::WinDrawLine,
     /* 0x09 */ syscall::CloseWindow,
-    /* 0x10 */ syscall::ReadEvent,
+    /* 0x0a */ syscall::ReadEvent,
 };
 
 void InitializeSyscall()
