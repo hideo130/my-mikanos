@@ -26,4 +26,4 @@ private:
 };
 
 void InitializeMouse();
-void SendMouseMessage(Vector2D<int> newpos, Vector2D<int> posdiff, uint8_t buttons);
+void SendMouseMessage(Vector2D<int> newpos, Vector2D<int> posdiff, uint8_t buttons, uint8_t previous_buttons);

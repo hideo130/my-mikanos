@@ -85,7 +85,11 @@ void Mouse::OnInterrupt(uint8_t buttons, int8_t displacement_x, int8_t displacem
         auto layer = layer_manager->FindLayerByPosition(position_, layer_id_);
         if (layer && layer->IsDraggable())
         {
-            drag_layer_id_ = layer->ID();
+            const auto y_layer = position_.y - layer->GetPosition().y;
+            if (y_layer < ToplevelWindow::kTopLeftMargin.y)
+            {
+                drag_layer_id_ = layer->ID();
+            }
             active_layer->Activate(layer->ID());
         }
         else
@@ -107,7 +111,7 @@ void Mouse::OnInterrupt(uint8_t buttons, int8_t displacement_x, int8_t displacem
 
     if (drag_layer_id_ == 0)
     {
-        SendMouseMessage(newpos, posdiff, buttons);
+        SendMouseMessage(newpos, posdiff, buttons, previous_buttons_);
     }
 
     previous_buttons_ = buttons;
@@ -138,7 +142,7 @@ void InitializeMouse()
 }
 
 void SendMouseMessage(Vector2D<int> newpos, Vector2D<int> posdiff,
-                      uint8_t buttons)
+                      uint8_t buttons, uint8_t previous_buttons)
 {
     const auto act = active_layer->GetActive();
     if (!act)
@@ -153,9 +157,9 @@ void SendMouseMessage(Vector2D<int> newpos, Vector2D<int> posdiff,
         return;
     }
 
+    const auto relpos = newpos - layer->GetPosition();
     if (posdiff.x != 0 || posdiff.y != 0)
     {
-        const auto relpos = newpos - layer->GetPosition();
         Message msg{Message::kMouseMove};
         msg.arg.mouse_move.x = relpos.x;
         msg.arg.mouse_move.y = relpos.y;
@@ -163,5 +167,22 @@ void SendMouseMessage(Vector2D<int> newpos, Vector2D<int> posdiff,
         msg.arg.mouse_move.dy = posdiff.y;
         msg.arg.mouse_move.buttons = buttons;
         task_manager->SendMessage(task_it->second, msg);
+    }
+
+    if (previous_buttons != buttons)
+    {
+        const auto diff = previous_buttons ^ buttons;
+        for (int i = 0; i < 8; i++)
+        {
+            if ((diff >> i) & 1)
+            {
+                Message msg{Message::kMouseButton};
+                msg.arg.mouse_button.x = relpos.x;
+                msg.arg.mouse_button.y = relpos.y;
+                msg.arg.mouse_button.press = (buttons >> i) & 1;
+                msg.arg.mouse_button.button = i;
+                task_manager->SendMessage(task_it->second, msg);
+            }
+        }
     }
 }
