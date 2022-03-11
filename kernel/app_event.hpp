@@ -12,6 +12,7 @@ extern "C"
             kQuit,
             kMouseMove,
             kMouseButton,
+            kKeyPush,
         } type;
 
         union
@@ -28,6 +29,15 @@ extern "C"
                 int press; // 1: press, 0: release
                 int button;
             } mouse_button;
+
+            struct 
+            {
+                uint8_t modifier;
+                uint8_t keycode;
+                char ascii;
+                int press; // 1: press, 0: release
+            } keypush;
+            
         } arg;
     };
 
