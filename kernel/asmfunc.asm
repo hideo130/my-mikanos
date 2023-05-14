@@ -304,6 +304,7 @@ SyscallEntry: ; void SyscallEntry();
     cli
     call GetCurrentTaskOSStackPointer
     sti
+    ; rax is pointer of top of os stack
     mov rdx, [rsp + 0] ; RDX
     mov [rax - 16], rdx
     mov rdx, [rsp + 8] ; RAX

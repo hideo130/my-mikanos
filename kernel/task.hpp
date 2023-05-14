@@ -51,6 +51,7 @@ private:
     uint64_t id_;
     std::vector<uint64_t> stack_;
     alignas(16) TaskContext context_;
+    // this value is assigned in CallApp
     uint64_t os_stack_ptr_;
     std::deque<Message> msgs_;
     unsigned int level_{kDefaultLevel};
