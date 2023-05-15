@@ -19,6 +19,7 @@ struct Message
         kLayerFinish,
         kMouseMove,
         kMouseButton,
+        kWindowActive,
     } type;
 
     uint64_t src_task;
@@ -54,10 +55,17 @@ struct Message
             uint8_t buttons;
         } mouse_move;
 
-        struct{
+        struct
+        {
             int x, y;
             int press; // 1: press, 0: release
             int button;
         } mouse_button;
+
+        struct
+        {
+            bool activate; // 1: activate, 0:deactivate
+        } window_active;
+
     } arg;
 };

@@ -108,3 +108,5 @@ constexpr Message MakeLayerMessage(
     msg.arg.layer.h = area.size.y;
     return msg;
 }
+
+Error SendWindowActiveMessage(unsigned int layer_id, int activate);
