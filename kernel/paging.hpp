@@ -93,3 +93,5 @@ union PageMapEntry
         bits.addr = reinterpret_cast<uint64_t>(p) >> 12;
     }
 };
+
+void ResetCR3();

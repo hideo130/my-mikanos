@@ -4,6 +4,8 @@
 
 #include "fat.hpp"
 #include "layer.hpp"
+#include "error.hpp"
+#include "paging.hpp"
 
 class Terminal
 {
@@ -45,3 +47,5 @@ public:
 
 void TaskTerminal(uint64_t task_id, int64_t data);
 extern std::map<uint64_t, Terminal *> *terminals;
+WithError<PageMapEntry *> SetupPML4(Task &current_task);
+Error FreePML4(Task &current_task);
