@@ -278,11 +278,12 @@ namespace syscall
             switch (msg->type)
             {
             case Message::kTimerTimeout:
-                if(msg->arg.timer.value < 0){
+                if (msg->arg.timer.value < 0)
+                {
                     app_events[i].type = AppEvent::kTimerTimeout;
                     app_events[i].arg.timer.timeout = msg->arg.timer.timeout;
                     app_events[i].arg.timer.value = -msg->arg.timer.value;
-
+                    i++;
                 }
                 break;
             case Message::kKeyPush:
@@ -290,7 +291,6 @@ namespace syscall
                     msg->arg.keyboard.modifier & (kLControlBitMask | kRControlBitMask))
                 {
                     app_events[i].type = AppEvent::kQuit;
-                    i++;
                 }
                 else
                 {
@@ -300,6 +300,7 @@ namespace syscall
                     app_events[i].arg.keypush.ascii = msg->arg.keyboard.ascii;
                     app_events[i].arg.keypush.press = msg->arg.keyboard.press;
                 }
+                i++;
                 break;
             case Message::kMouseMove:
                 app_events[i].type = AppEvent::kMouseMove;
@@ -349,7 +350,7 @@ namespace syscall
         __asm__("cli");
         timer_manager->AddTimer(Timer{timeout, -timer_value, task_id});
         __asm__("sti");
-        return {timeout * 1000 / kTimerFreq, 0};
+        return { timeout, 0 };
     }
 
 #undef SYSCALL
