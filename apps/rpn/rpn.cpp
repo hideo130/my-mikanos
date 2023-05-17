@@ -1,11 +1,7 @@
 #include <cstring>
 #include <cstdlib>
-#include <cstdint>
 #include <cstdio>
-
-// auto &printk = *reinterpret_cast<int (*)(const char *, ...)>(0x000000000010b6f0);
-// auto &fill_rect = *reinterpret_cast<decltype(FillRectangle) *>(0x000000000010fd90);
-// auto &scrn_writer = *reinterpret_cast<decltype(screen_writer) *>(0x0000000000271058);
+#include "../syscall.h"
 
 int stack_ptr;
 long stack[100];
@@ -23,7 +19,6 @@ void Push(long value)
     stack[stack_ptr] = value;
 }
 
-extern "C" void SyscallExit(int exit_code);
 
 extern "C" int main(int argc, char **argv)
 {
@@ -50,12 +45,7 @@ extern "C" int main(int argc, char **argv)
             Push(a);
         }
     }
-    // fill_rect(*scrn_writer, Vector2D<int>{100, 10}, Vector2D<int>{200, 200}, ToColor(0x00ff00));
 
-    if (stack_ptr < 0)
-    {
-        return 0;
-    }
     long result = 0;
     if (stack_ptr >= 0)
     {
