@@ -96,9 +96,12 @@ void InitializeTSS()
 {
     const int kRSP0Frames = 8;
     SetTSS(1, AllocateStackArea(kRSP0Frames));
-    SetTSS(7 +2*kISTForTimer, AllocateStackArea(kRSP0Frames));
+    SetTSS(7 + 2 * kISTForTimer, AllocateStackArea(kRSP0Frames));
 
     uint64_t tss_addr = reinterpret_cast<uint64_t>(&tss[0]);
+    // Divide 64bit of tss_addr into 2.
+    // first, we get lower 32bit by tss_addr & 0xffffffff,
+    // then we get upper 32bit by tss_addr >> 32
     SetSystemSegment(gdt[kTSS >> 3], DescriptorType::kTSSAvailable, 0,
                      tss_addr & 0xffffffff, sizeof(tss) - 1);
     gdt[(kTSS >> 3) + 1].data = tss_addr >> 32;

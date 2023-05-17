@@ -73,8 +73,6 @@ namespace
         return {argc, MAKE_ERROR(Error::kSuccess)};
     }
 
-    // Error SetupPageMaps(LinearAddress4Level addr, size_t num_4kpages);
-
     Elf64_Phdr *GetProgramHeader(Elf64_Ehdr *ehdr)
     {
         return reinterpret_cast<Elf64_Phdr *>(reinterpret_cast<uintptr_t>(ehdr) + ehdr->e_phoff);
@@ -215,6 +213,7 @@ namespace
 
         // get first load addr to wheather it's valid
         const auto addr_first = GetFirstLoadAddress(ehdr);
+        // virtual address of application range is 0xffff'8000'0000'0000 or more
         if (addr_first < 0xffff'8000'0000'0000)
         {
             return MAKE_ERROR(Error::kInvalidFormat);
@@ -627,7 +626,9 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry &file_entry, char *command
 
     auto entry_addr = elf_header->e_entry;
     // Expression 3<<3 | 3 is same for table 20.3
-    int ret = CallApp(argc.value, argv, 3 << 3 | 3, entry_addr,
+    u_int16_t user_cpl = 3;
+    
+    int ret = CallApp(argc.value, argv, 3 << 3 | user_cpl, entry_addr,
                       stack_frame_addr.value + 4096 - 8,
                       &task.OSStackPointer());
 
