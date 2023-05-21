@@ -89,7 +89,9 @@ void Console::SetWriter(PixelWriter *writer)
 
 void Console::Refresh()
 {
-    for (int row = 0; row < kRows; row++)
+
+    FillRectangle(*writer_, {0, 0}, {8 * kColumns, 16 * kRows}, bg_color_);
+    for (int row = 0; row < kRows; ++row)
     {
         WriteString(*writer_, 0, 16 * row, buffer_[row], fg_color_);
     }
