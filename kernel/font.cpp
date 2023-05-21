@@ -16,22 +16,13 @@ const uint8_t *GetFont(char c)
 
 void WriteString(PixelWriter &writer, Vector2D<int> pos, const char *s, const PixelColor &color)
 {
-    WriteString(writer, pos.x, pos.y, s, color);
-}
-
-void WriteString(PixelWriter &writer, int x, int y, const char *s, const PixelColor &color)
-{
-    for (int i = 0; s[i] != '\0'; i++)
+    for (int i = 0; s[i] != '\0'; ++i)
     {
-        WriteAscii(writer, x + 8 * i, y, s[i], color);
+        WriteAscii(writer, pos + Vector2D<int>{8 * i, 0}, s[i], color);
     }
 }
 
-void WriteAscii(PixelWriter &writer, Vector2D<int> pos, char c, const PixelColor &color){
-    WriteAscii(writer, pos.x, pos.y, c, color);
-}
-
-void WriteAscii(PixelWriter &writer, int x, int y, char c, const PixelColor &color)
+void WriteAscii(PixelWriter &writer, Vector2D<int> pos, char c, const PixelColor &color)
 {
     const uint8_t *font = GetFont(c);
     if (font == nullptr)
@@ -45,7 +36,7 @@ void WriteAscii(PixelWriter &writer, int x, int y, char c, const PixelColor &col
         {
             if ((font[dy] << dx) & 0x80u)
             {
-                writer.Write(Vector2D<int>{x + dx, y + dy}, color);
+                writer.Write(Vector2D<int>{pos.x + dx, pos.y + dy}, color);
             }
         }
     }
