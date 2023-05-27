@@ -185,14 +185,13 @@ KernelMainNewStack(const FrameBufferConfig &frame_buffer_config_ref,
 
     InitializeTask();
 
+    usb::xhci::Initialize();
+    InitializeKeyboard();
+    InitializeMouse();
     Task &main_task = task_manager->CurrentTask();
     task_manager->NewTask()
         .InitContext(TaskTerminal, 0)
         .Wakeup();
-
-    usb::xhci::Initialize();
-    InitializeKeyboard();
-    InitializeMouse();
 
     // uint8_t *p = reinterpret_cast<uint8_t *>(volume_image);
     // printk("Volume Image:\n");
