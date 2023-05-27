@@ -294,16 +294,35 @@ SyscallEntry: ; void SyscallEntry();
     push rax ; save system call id
 
     mov rcx, r10
-    and eax, 0x7fffffff
+    and rax, 0x7fffffff
     mov rbp, rsp
 
     ; prepare to execute system call on stack for OS
     and rsp, 0xfffffffffffffff0
+    
     push rax
     push rdx
+
+    ; push caller-saved register
+    push rdi
+    push rsi
+    push rcx
+    push r8
+    push r9
+    push r10
+
     cli
     call GetCurrentTaskOSStackPointer
     sti
+
+    ; pop caller-saved register
+    pop r10
+    pop r9
+    pop r8
+    pop rcx
+    pop rsi
+    pop rdi
+
     ; rax is pointer of top of os stack
     mov rdx, [rsp + 0] ; RDX
     mov [rax - 16], rdx
