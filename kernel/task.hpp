@@ -44,9 +44,7 @@ public:
     int Level() const { return level_; }
     bool Running() const { return running_; }
 
-    uint64_t& OSStackPointer(){
-        return os_stack_ptr_;
-    }
+    uint64_t& OSStackPointer();
 private:
     uint64_t id_;
     std::vector<uint64_t> stack_;

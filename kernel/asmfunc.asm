@@ -146,7 +146,6 @@ RestoreContext: ; void RestoreContext(void* task_context);
     push qword [rdi + 0x20] ; CS
     push qword [rdi + 0x08] ; RIP
 
-    ; return of context
     fxrstor [rdi + 0xc0]
 
     mov rax, [rdi + 0x00]
@@ -160,9 +159,10 @@ RestoreContext: ; void RestoreContext(void* task_context);
     mov rbx, [rdi + 0x48]
     mov rcx, [rdi + 0x50]
     mov rdx, [rdi + 0x58]
-    ; Why offset difference is 10, instead of 8.
+    ; Why offset difference is 16, instead of 8.
     ; Because 0x60 is setted rdi, and if load it, 
     ; then we cannnot load registers such as r8.
+    ; So rdi is loaded last.
     mov rsi, [rdi + 0x68]
     ; 0x70 is used for RSP. Why we skip?
     ; Because RSP value in stack is returned to by iret
@@ -319,6 +319,7 @@ SyscallEntry: ; void SyscallEntry();
     ; rbx, r12-15 is calee-saved, so caller doesn't save them
     ; rax is for return value so caller doesn't save it.
 
+    ; switch os stack to app stack
     mov rsp, rbp
 
     pop rsi ; resotre system call id to rsi
@@ -331,10 +332,13 @@ SyscallEntry: ; void SyscallEntry();
     o64 sysret
 
 .exit:
+    ; switch app stack to os stack
     mov rsp, rax
     mov eax, edx
     
-    ; these registers are saved stack in callee
+    ; these registers are callee-saved.
+    ; they are saved at os stack in CallApp
+    ; rip is got from stack by ret operator
     pop r15
     pop r14
     pop r13

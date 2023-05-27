@@ -6,6 +6,8 @@
 namespace
 {
     std::array<SegmentDescriptor, 7> gdt;
+    // allocate array, space is 32bit * 26 = 108 byte.
+    // tss is 108 byte so the array is sufficient space for tss.
     std::array<uint32_t, 26> tss;
 
     static_assert((kTSS >> 3) + 1 < gdt.size());
@@ -95,7 +97,11 @@ uint64_t AllocateStackArea(int num_4kframes)
 void InitializeTSS()
 {
     const int kRSP0Frames = 8;
+
+    // Why do we allocate 2 stack frame?
+    // Set RSP0. Offset for RSP0 is 1.
     SetTSS(1, AllocateStackArea(kRSP0Frames));
+    // Set IST1. Offset for IST1 is 7.
     SetTSS(7 + 2 * kISTForTimer, AllocateStackArea(kRSP0Frames));
 
     uint64_t tss_addr = reinterpret_cast<uint64_t>(&tss[0]);

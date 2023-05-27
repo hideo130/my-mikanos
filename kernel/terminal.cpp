@@ -26,6 +26,7 @@ namespace
             argc++;
 
             strcpy(&argbuf[argbuf_index], s);
+            // add 1 for delimiter
             argbuf_index += strlen(s) + 1;
             return MAKE_ERROR(Error::kSuccess);
         };
@@ -626,9 +627,13 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry &file_entry, char *command
 
     auto entry_addr = elf_header->e_entry;
     // Expression 3<<3 | 3 is same for table 20.3
-    u_int16_t user_cpl = 3;
-    
-    int ret = CallApp(argc.value, argv, 3 << 3 | user_cpl, entry_addr,
+    uint16_t user_cpl = 3;
+    uint16_t gdt_index_of_ss = 3;
+    uint16_t ss_value = gdt_index_of_ss << 3 | user_cpl;
+    // 4096 = 0x1000
+    // why do we subtract 8?
+
+    int ret = CallApp(argc.value, argv, ss_value, entry_addr,
                       stack_frame_addr.value + 4096 - 8,
                       &task.OSStackPointer());
 
