@@ -352,9 +352,14 @@ SyscallEntry: ; void SyscallEntry();
 
 .exit:
     ; switch app stack to os stack
-    mov rsp, rax
-    mov eax, edx
-    
+    mov rdi, rax
+    mov esi, edx
+    jmp ExitApp
+
+global ExitApp ; void ExitApp(uint64_t rsp, int32_t ret_val)
+ExitApp:
+    mov rsp, rdi
+    mov eax, esi
     ; these registers are callee-saved.
     ; they are saved at os stack in CallApp
     ; rip is got from stack by ret operator
