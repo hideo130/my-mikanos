@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <cstdint>
 
 const size_t kPageDirectoryCount = 64;
 

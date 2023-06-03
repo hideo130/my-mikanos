@@ -182,7 +182,7 @@ namespace
 
     Error CopyLoadSegments(Elf64_Ehdr *ehdr)
     {
-        auto phdr = GetProgramHeader(ehdr);
+        const auto phdr = GetProgramHeader(ehdr);
         for (int i = 0; i < ehdr->e_phnum; i++)
         {
             if (phdr[i].p_type != PT_LOAD)
@@ -192,14 +192,22 @@ namespace
             dest_addr.value = phdr[i].p_vaddr;
             const auto num_4kpages = (phdr[i].p_memsz + 4095) / 4096;
 
-            if (auto err = SetupPageMaps(dest_addr, num_4kpages))
+            if (auto err = SetupPageMaps(dest_addr, num_4kpages + 1))
             {
                 return err;
             }
 
+            // CheckPaging(dest_addr);
             const auto src = reinterpret_cast<uint8_t *>(ehdr) + phdr[i].p_offset;
             const auto dst = reinterpret_cast<uint8_t *>(phdr[i].p_vaddr);
             memcpy(dst, src, phdr[i].p_filesz);
+            LinearAddress4Level dst2{static_cast<uint64_t>(*dst)};
+            LinearAddress4Level dst3{static_cast<uint64_t>(phdr[i].p_vaddr)};
+            LinearAddress4Level dst4{static_cast<uint64_t>(phdr[i].p_vaddr + phdr[i].p_filesz)};
+            LinearAddress4Level dst5{static_cast<uint64_t>(phdr[i].p_vaddr + phdr[i].p_memsz)};
+            LinearAddress4Level dst6{static_cast<uint64_t>(phdr[i].p_vaddr + 4096)};
+            LinearAddress4Level dst7{static_cast<uint64_t>(phdr[i].p_vaddr + 4096)};
+
             memset(dst + phdr[i].p_filesz, 0, phdr[i].p_memsz - phdr[i].p_filesz);
         }
         return MAKE_ERROR(Error::kSuccess);
@@ -274,20 +282,23 @@ namespace
     }
 }
 
-Terminal::Terminal(uint64_t task_id) : task_id_{task_id}
+Terminal::Terminal(uint64_t task_id, bool show_window) : task_id_{task_id}, show_window_{show_window}
 {
-    window_ = std::make_shared<ToplevelWindow>(
-        kColumns * 8 + 8 + ToplevelWindow::kMarginX,
-        kRows * 16 + 8 + ToplevelWindow::kMarginY,
-        screen_config.pixel_format,
-        "MikanTerm");
-    DrawTerminal(*window_->InnerWriter(), {0, 0}, window_->InnerSize());
+    if (show_window)
+    {
+        window_ = std::make_shared<ToplevelWindow>(
+            kColumns * 8 + 8 + ToplevelWindow::kMarginX,
+            kRows * 16 + 8 + ToplevelWindow::kMarginY,
+            screen_config.pixel_format,
+            "MikanTerm");
+        DrawTerminal(*window_->InnerWriter(), {0, 0}, window_->InnerSize());
 
-    layer_id_ = layer_manager->NewLayer()
-                    .SetWindow(window_)
-                    .SetDraggable(true)
-                    .ID();
-    Print(">");
+        layer_id_ = layer_manager->NewLayer()
+                        .SetWindow(window_)
+                        .SetDraggable(true)
+                        .ID();
+        Print(">");
+    }
     cmd_history_.resize(8);
 }
 
@@ -300,8 +311,11 @@ Rectangle<int> Terminal::BlinkCursor()
 
 void Terminal::DrawCursor(bool visible)
 {
-    const auto color = visible ? ToColor(0xffffff) : ToColor(0);
-    FillRectangle(*window_->Writer(), CalcCursorPos(), {7, 15}, color);
+    if (show_window_)
+    {
+        const auto color = visible ? ToColor(0xffffff) : ToColor(0);
+        FillRectangle(*window_->Writer(), CalcCursorPos(), {7, 15}, color);
+    }
 }
 
 Vector2D<int> Terminal::CalcCursorPos() const
@@ -368,7 +382,10 @@ Rectangle<int> Terminal::InputKey(uint8_t modifier, uint8_t keycode, char ascii)
         {
             linebuf_[linebuf_index_] = ascii;
             linebuf_index_++;
-            WriteAscii(*window_->Writer(), CalcCursorPos(), ascii, {255, 255, 255});
+            if (show_window_)
+            {
+                WriteAscii(*window_->Writer(), CalcCursorPos(), ascii, {255, 255, 255});
+            }
             cursor_.x++;
         }
     }
@@ -407,7 +424,10 @@ void Terminal::Print(char c)
     }
     else
     {
-        WriteAscii(*window_->Writer(), CalcCursorPos(), c, {255, 255, 255});
+        if (show_window_)
+        {
+            WriteAscii(*window_->Writer(), CalcCursorPos(), c, {255, 255, 255});
+        }
         if (cursor_.x == kColumns - 1)
         {
             newline();
@@ -555,6 +575,12 @@ void Terminal::ExecuteLine()
             }
             DrawCursor(true);
         }
+    }
+    else if (strcmp(command, "noterm") == 0)
+    {
+        task_manager->NewTask()
+            .InitContext(TaskTerminal, reinterpret_cast<int64_t>(first_arg))
+            .Wakeup();
     }
     else if (command[0] != 0)
     {
@@ -710,14 +736,29 @@ std::map<uint64_t, Terminal *> *terminals;
 
 void TaskTerminal(uint64_t task_id, int64_t data)
 {
+    const char *command_line = reinterpret_cast<char *>(data);
+    const bool show_window = command_line == nullptr;
+
     __asm__("cli");
     Task &task = task_manager->CurrentTask();
-    Terminal *terminal = new Terminal{task_id};
-    layer_manager->Move(terminal->LayerID(), {100, 200});
-    layer_task_map->insert(std::make_pair(terminal->LayerID(), task_id));
-    active_layer->Activate(terminal->LayerID());
-    (*terminals)[task_id] = terminal;
+    Terminal *terminal = new Terminal{task_id, show_window};
 
+    if (show_window)
+    {
+        layer_manager->Move(terminal->LayerID(), {100, 200});
+        layer_task_map->insert(std::make_pair(terminal->LayerID(), task_id));
+        active_layer->Activate(terminal->LayerID());
+    }
+    (*terminals)[task_id] = terminal;
+    __asm__("sti");
+    if (command_line)
+    {
+        for (int i = 0; command_line[i] != '\0'; i++)
+        {
+            terminal->InputKey(0, 0, command_line[i]);
+        }
+        terminal->InputKey(0, 0, '\n');
+    }
     auto add_blink_timer = [task_id](unsigned long t)
     {
         timer_manager->AddTimer(Timer{t + static_cast<int>(kTimerFreq * 0.5), 1, task_id});
@@ -726,7 +767,6 @@ void TaskTerminal(uint64_t task_id, int64_t data)
 
     bool window_isactive = false;
 
-    __asm__("sti");
     while (true)
     {
         __asm__("cli");
@@ -744,7 +784,7 @@ void TaskTerminal(uint64_t task_id, int64_t data)
         case Message::kTimerTimeout:
         {
             add_blink_timer(msg->arg.timer.timeout);
-            if (window_isactive)
+            if (show_window && window_isactive)
             {
                 const auto area = terminal->BlinkCursor();
                 Message msg = MakeLayerMessage(task_id, terminal->LayerID(), LayerOperation::DrawArea, area);
@@ -761,10 +801,13 @@ void TaskTerminal(uint64_t task_id, int64_t data)
                 const auto area = terminal->InputKey(msg->arg.keyboard.modifier,
                                                      msg->arg.keyboard.keycode,
                                                      msg->arg.keyboard.ascii);
-                Message msg = MakeLayerMessage(task_id, terminal->LayerID(), LayerOperation::DrawArea, area);
-                __asm__("cli");
-                task_manager->SendMessage(1, msg);
-                __asm__("sti");
+                if (show_window)
+                {
+                    Message msg = MakeLayerMessage(task_id, terminal->LayerID(), LayerOperation::DrawArea, area);
+                    __asm__("cli");
+                    task_manager->SendMessage(1, msg);
+                    __asm__("sti");
+                }
             }
         }
         break;
