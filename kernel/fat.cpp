@@ -41,6 +41,18 @@ namespace fat
         }
     }
 
+    void FormatName(const DirectoryEntry &entry, char *dest)
+    {
+        // extension length in fat format is 3.
+        // 1 byte(period) + 3 byte(extension) + 1 byte(null string)
+        char ext[5] = ".";
+        ReadName(entry, dest, &ext[1]);
+        if (ext[1])
+        {
+            strcat(dest, ext);
+        }
+    }
+
     unsigned long NextCluster(unsigned long cluster)
     {
         uintptr_t fat_offset = boot_volume_image->rsvd_sec_cnt *
@@ -78,27 +90,65 @@ namespace fat
         return memcmp(entry.name, name83, sizeof(name83)) == 0;
     }
 
-    DirectoryEntry *FindFile(const char *name, unsigned long directory_cluster)
+    std::pair<DirectoryEntry *, bool>
+    FindFile(const char *path, unsigned long directory_cluster)
     {
-        if (directory_cluster == 0)
+        if (path[0] == '/')
+        {
+            directory_cluster = boot_volume_image->root_clus;
+            path++;
+        }
+        else if (directory_cluster == 0)
         {
             directory_cluster = boot_volume_image->root_clus;
         }
+        char path_elem[13];
+        const auto [next_path, post_slash] = NextPathElement(path, path_elem);
+        const bool path_last = next_path == nullptr || next_path[0] == '\0';
 
         while (directory_cluster != kEndOfClusterchain)
         {
             auto dir = GetSectorByCluster<DirectoryEntry>(directory_cluster);
             for (int i = 0; i < bytes_per_cluster / sizeof(DirectoryEntry); i++)
             {
-                if (NameIsEqual(dir[i], name))
+                if (dir[i].name[0] == 0x00)
                 {
-                    return &dir[i];
+                    return {nullptr, post_slash};
+                }
+                else if (!NameIsEqual(dir[i], path_elem))
+                {
+                    continue;
+                }
+                if (dir[i].attr == Attribute::kDirectory && !path_last)
+                {
+                    return FindFile(next_path, dir[i].FirstCluster());
+                }
+                else
+                {
+                    // dir[i] is not directory, but we occured last path.
+                    // so we finish searching.
+                    return {&dir[i], post_slash};
                 }
             }
             directory_cluster = NextCluster(directory_cluster);
         }
 
-        return nullptr;
+        return {nullptr, post_slash};
+    }
+
+    std::pair<const char *, bool> NextPathElement(const char *path, char *path_elem)
+    {
+        const char *next_slash = strchr(path, '/');
+        if (next_slash == nullptr)
+        {
+            strcpy(path_elem, path);
+            return {nullptr, false};
+        }
+
+        const auto elem_len = next_slash - path;
+        strncpy(path_elem, path, elem_len);
+        path_elem[elem_len] = '\0';
+        return {&next_slash[1], true};
     }
 
     size_t LoadFile(void *buf, size_t len, const DirectoryEntry &entry)

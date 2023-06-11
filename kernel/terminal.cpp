@@ -206,7 +206,6 @@ namespace
             LinearAddress4Level dst4{static_cast<uint64_t>(phdr[i].p_vaddr + phdr[i].p_filesz)};
             LinearAddress4Level dst5{static_cast<uint64_t>(phdr[i].p_vaddr + phdr[i].p_memsz)};
             LinearAddress4Level dst6{static_cast<uint64_t>(phdr[i].p_vaddr + 4096)};
-            LinearAddress4Level dst7{static_cast<uint64_t>(phdr[i].p_vaddr + 4096)};
 
             memset(dst + phdr[i].p_filesz, 0, phdr[i].p_memsz - phdr[i].p_filesz);
         }
@@ -510,44 +509,45 @@ void Terminal::ExecuteLine()
     }
     else if (strcmp(command, "ls") == 0)
     {
-        auto root_dir_entries = fat::GetSectorByCluster<fat::DirectoryEntry>(
-            fat::boot_volume_image->root_clus);
-        auto entries_per_cluster = fat::boot_volume_image->bytes_per_sec / sizeof(fat::DirectoryEntry) *
-                                   fat::boot_volume_image->sec_per_clus;
-        char base[9], ext[4];
-        char s[64];
-        for (int i = 0; i < entries_per_cluster; i++)
+        if (first_arg[0] == '\0')
         {
-            ReadName(root_dir_entries[i], base, ext);
-            if (base[0] == 0x00)
+            ListAllEntries(this, fat::boot_volume_image->root_clus);
+        }
+        else
+        {
+            auto [dir, post_slash] = fat::FindFile(first_arg);
+            if (dir == nullptr)
             {
-                break;
+                Print("No such file or directory: ");
+                Print(first_arg);
+                Print("\n");
             }
-            else if (static_cast<uint8_t>(base[0]) == 0xe5)
+            else if (dir->attr == fat::Attribute::kDirectory)
             {
-                continue;
-            }
-            else if (root_dir_entries[i].attr == fat::Attribute::kLongName)
-            {
-                continue;
-            }
-
-            if (ext[0])
-            {
-                sprintf(s, "%s.%s\n", base, ext);
+                ListAllEntries(this, dir->FirstCluster());
             }
             else
             {
-                sprintf(s, "%s\n", base);
+                char name[13];
+                fat::FormatName(*dir, name);
+                if (post_slash)
+                {
+                    Print(name);
+                    Print(" is not a directory \n");
+                }
+                else
+                {
+                    Print(name);
+                    Print("\n");
+                }
             }
-            Print(s);
         }
     }
     else if (strcmp(command, "cat") == 0)
     {
         char s[64];
 
-        auto file_entry = fat::FindFile(first_arg);
+        auto [file_entry, _post_slash] = fat::FindFile(first_arg);
         if (!file_entry)
         {
             sprintf(s, "no such file: %s\n", first_arg);
@@ -584,12 +584,19 @@ void Terminal::ExecuteLine()
     }
     else if (command[0] != 0)
     {
-        auto file_entry = fat::FindFile(command);
+        auto [file_entry, post_slash] = fat::FindFile(command);
         if (!file_entry)
         {
             Print("no such command: ");
             Print(command);
             Print("\n");
+        }
+        else if (file_entry->attr != fat::Attribute::kDirectory && post_slash)
+        {
+            char name[13];
+            fat::FormatName(*file_entry, name);
+            Print(name);
+            Print(" is not a directory\n");
         }
         else if (auto err = ExecuteFile(*file_entry, command, first_arg))
         {
@@ -730,6 +737,44 @@ Rectangle<int> Terminal::HistoryUpDown(int direction)
 }
 
 std::map<uint64_t, Terminal *> *terminals;
+
+void ListAllEntries(Terminal *term, uint32_t dir_cluster)
+{
+
+    auto dir_entries = fat::GetSectorByCluster<fat::DirectoryEntry>(
+        dir_cluster);
+    auto entries_per_cluster = fat::boot_volume_image->bytes_per_sec / sizeof(fat::DirectoryEntry) *
+                               fat::boot_volume_image->sec_per_clus;
+    char base[9], ext[4];
+    char s[64];
+    for (int i = 0; i < entries_per_cluster; i++)
+    {
+        ReadName(dir_entries[i], base, ext);
+        if (base[0] == 0x00)
+        {
+            break;
+        }
+        else if (static_cast<uint8_t>(base[0]) == 0xe5)
+        {
+            continue;
+        }
+        else if (dir_entries[i].attr == fat::Attribute::kLongName)
+        {
+            continue;
+        }
+
+        if (ext[0])
+        {
+            sprintf(s, "%s.%s\n", base, ext);
+        }
+        else
+        {
+            sprintf(s, "%s\n", base);
+        }
+        
+        term->Print(s);
+    }
+}
 
 void TaskTerminal(uint64_t task_id, int64_t data)
 {

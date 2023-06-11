@@ -50,3 +50,4 @@ void TaskTerminal(uint64_t task_id, int64_t data);
 extern std::map<uint64_t, Terminal *> *terminals;
 WithError<PageMapEntry *> SetupPML4(Task &current_task);
 Error FreePML4(Task &current_task);
+void ListAllEntries(Terminal *term, uint32_t dir_cluster);

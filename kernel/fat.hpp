@@ -82,10 +82,12 @@ namespace fat
     }
 
     void ReadName(const DirectoryEntry &entry, char *base, char *ext);
+    void FormatName(const DirectoryEntry &entry, char *dest);
 
     unsigned long NextCluster(unsigned long cluster);
     static const unsigned long kEndOfClusterchain = 0x0fffffflu;
-    DirectoryEntry *FindFile(const char *name, unsigned long directory_cluster = 0);
+    std::pair<DirectoryEntry *, bool> FindFile(const char *name, unsigned long directory_cluster = 0);
+    std::pair<const char *, bool> NextPathElement(const char *path, char *path_elem);
 
     size_t LoadFile(void *buf, size_t len, const DirectoryEntry &entry);
 }
