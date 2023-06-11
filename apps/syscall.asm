@@ -4,7 +4,7 @@ section .text
 %macro define_syscall 2
 global Syscall%1
 Syscall%1:
-    mov eax, %2
+    mov rax, %2
     mov r10, rcx
     syscall
     ret
