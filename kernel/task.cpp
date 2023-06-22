@@ -19,7 +19,7 @@ namespace
 
 }
 
-Task::Task(uint64_t id) : id_{id} {};
+Task::Task(uint64_t id) : id_{id}, msgs_{} {};
 
 Task &Task::InitContext(TaskFunc *f, int64_t data)
 {
@@ -100,6 +100,11 @@ std::optional<Message> Task::ReceiveMessage()
 uint64_t &Task::OSStackPointer()
 {
     return os_stack_ptr_;
+}
+
+std::vector<std::unique_ptr<fat::FileDescriptor>>& Task::Files()
+{
+    return files_;
 }
 
 TaskManager *task_manager;
@@ -299,7 +304,7 @@ void InitializeTask()
     __asm__("sti");
 }
 
-// __attribute__((no_caller_saved_registers)) 
+// __attribute__((no_caller_saved_registers))
 extern "C" uint64_t GetCurrentTaskOSStackPointer()
 {
     return task_manager->CurrentTask().OSStackPointer();

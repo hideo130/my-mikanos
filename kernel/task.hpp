@@ -8,6 +8,7 @@
 
 #include "error.hpp"
 #include "timer.hpp"
+#include "fat.hpp"
 
 struct TaskContext
 {
@@ -44,7 +45,9 @@ public:
     int Level() const { return level_; }
     bool Running() const { return running_; }
 
-    uint64_t& OSStackPointer();
+    uint64_t &OSStackPointer();
+    std::vector<std::unique_ptr<fat::FileDescriptor>>& Files();
+
 private:
     uint64_t id_;
     std::vector<uint64_t> stack_;
@@ -54,6 +57,7 @@ private:
     std::deque<Message> msgs_;
     unsigned int level_{kDefaultLevel};
     bool running_{false};
+    std::vector<std::unique_ptr<fat::FileDescriptor>> files_{};
 
     Task &SetLevel(int level)
     {
@@ -77,7 +81,7 @@ public:
 
     TaskManager();
     Task &NewTask();
-    void SwitchTask(const TaskContext& current_ctx);
+    void SwitchTask(const TaskContext &current_ctx);
 
     void Sleep(Task *task);
     Error Sleep(uint64_t id);

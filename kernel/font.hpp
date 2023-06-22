@@ -1,3 +1,4 @@
+#pragma once
 #include "graphics.hpp"
 
 void WriteAscii(PixelWriter &writer, Vector2D<int> pos, char c, const PixelColor &color);
