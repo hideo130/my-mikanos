@@ -9,6 +9,7 @@
 #include "error.hpp"
 #include "timer.hpp"
 #include "fat.hpp"
+#include "file.hpp"
 
 struct TaskContext
 {
@@ -46,7 +47,7 @@ public:
     bool Running() const { return running_; }
 
     uint64_t &OSStackPointer();
-    std::vector<std::unique_ptr<fat::FileDescriptor>>& Files();
+    std::vector<std::unique_ptr<::FileDescriptor>> &Files();
 
 private:
     uint64_t id_;
@@ -57,7 +58,7 @@ private:
     std::deque<Message> msgs_;
     unsigned int level_{kDefaultLevel};
     bool running_{false};
-    std::vector<std::unique_ptr<fat::FileDescriptor>> files_{};
+    std::vector<std::unique_ptr<::FileDescriptor>> files_{};
 
     Task &SetLevel(int level)
     {

@@ -3,9 +3,11 @@
 #include <deque>
 
 #include "fat.hpp"
+#include "file.hpp"
 #include "layer.hpp"
 #include "error.hpp"
 #include "paging.hpp"
+#include "task.hpp"
 
 class Terminal
 {
@@ -51,3 +53,14 @@ extern std::map<uint64_t, Terminal *> *terminals;
 WithError<PageMapEntry *> SetupPML4(Task &current_task);
 Error FreePML4(Task &current_task);
 void ListAllEntries(Terminal *term, uint32_t dir_cluster);
+
+class TerminalFileDescriptor : public FileDescriptor
+{
+public:
+    explicit TerminalFileDescriptor(Task &task, Terminal &term);
+    size_t Read(void *buf, size_t len) override;
+
+private:
+    Task &task_;
+    Terminal &term_;
+};

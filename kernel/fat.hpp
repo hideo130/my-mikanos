@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "file.hpp"
 
 namespace fat
 {
@@ -91,11 +92,11 @@ namespace fat
 
     size_t LoadFile(void *buf, size_t len, const DirectoryEntry &entry);
 
-    class FileDescriptor
+    class FileDescriptor : public ::FileDescriptor
     {
     public:
         explicit FileDescriptor(DirectoryEntry &fat_entry);
-        size_t Read(void *buf, size_t len);
+        size_t Read(void *buf, size_t len) override;
 
     private:
         DirectoryEntry &fat_entry_;
@@ -103,4 +104,5 @@ namespace fat
         unsigned long rd_cluster_ = 0;
         size_t rd_cluster_off_ = 0;
     };
+
 }

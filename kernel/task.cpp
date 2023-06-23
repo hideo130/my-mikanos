@@ -102,7 +102,7 @@ uint64_t &Task::OSStackPointer()
     return os_stack_ptr_;
 }
 
-std::vector<std::unique_ptr<fat::FileDescriptor>>& Task::Files()
+std::vector<std::unique_ptr<::FileDescriptor>>& Task::Files()
 {
     return files_;
 }
