@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "error.hpp"
 #include "file.hpp"
 
 namespace fat
@@ -105,4 +106,11 @@ namespace fat
         size_t rd_cluster_off_ = 0;
     };
 
+    bool IsEndOfClusterchain(uint32_t cluster);
+    
+    void SetFileName(DirectoryEntry &dir, const char *filename);
+    WithError<DirectoryEntry *> CreateFile(const char *path);
+    DirectoryEntry *AllocateEntry(unsigned long dir_cluster);
+    unsigned long ExtendCluster(unsigned long eoc_cluster, size_t n);
+    uint32_t *GetFAT();
 }

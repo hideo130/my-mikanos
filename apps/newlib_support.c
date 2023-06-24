@@ -20,6 +20,7 @@ int fstat(int fd, struct stat *buf)
 
 int isatty(int fd)
 {
+  // return fd == 0;
   errno = EBADF;
   return -1;
 }

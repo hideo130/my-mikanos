@@ -1,6 +1,7 @@
 #include "asmfunc.h"
 #include "elf.hpp"
 #include "font.hpp"
+#include "keyboard.hpp"
 #include "logger.hpp"
 #include "memory_manager.hpp"
 #include "task.hpp"
@@ -884,11 +885,24 @@ size_t TerminalFileDescriptor::Read(void *buf, size_t len)
             continue;
         }
         __asm__("sti");
-        if (msg->type == Message::kKeyPush && msg->arg.keyboard.press)
+        if (msg->type != Message::kKeyPush || !msg->arg.keyboard.press)
         {
-            bufc[0] = msg->arg.keyboard.ascii;
-            term_.Print(bufc, 1);
-            return 1;
+            continue;
         }
+        if (msg->arg.keyboard.modifier & (kLControlBitMask | kRControlBitMask))
+        {
+            char s[3] = "^ ";
+            s[1] = toupper(msg->arg.keyboard.ascii);
+            term_.Print(s);
+            if (msg->arg.keyboard.keycode == 7)
+            {
+                // EOT
+                return 0;
+            }
+            continue;
+        }
+        bufc[0] = msg->arg.keyboard.ascii;
+        term_.Print(bufc, 1);
+        return 1;
     }
 }
