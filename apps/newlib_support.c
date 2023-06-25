@@ -3,7 +3,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <signal.h>
-
+#include <stdlib.h>
 #include "syscall.h"
 
 int close(int fd)
@@ -80,8 +80,14 @@ int kill(int pid, int sig)
 
 int posix_memalign(void **memptr, size_t alignment, size_t size)
 {
-  errno = EINVAL;
-  return -1;
+  void *p = malloc(size + alignment - 1);
+  if (!p)
+  {
+    return ENOMEM;
+  }
+  uintptr_t addr = (uintptr_t)p;
+  *memptr = (void *)((addr + alignment - 1) & ~(uintptr_t)(alignment - 1));
+  return 0;
 }
 
 void __gxx_personality_v0()

@@ -23,7 +23,7 @@ namespace fat
         return reinterpret_cast<uintptr_t>(boot_volume_image) + offset;
     }
 
-    bool IsEndOfClusterchain(uint32_t cluster)
+    bool IsEndOfClusterchain(unsigned long cluster)
     {
         return cluster >= 0x0ffffff8ul;
     }
@@ -68,13 +68,9 @@ namespace fat
 
     unsigned long NextCluster(unsigned long cluster)
     {
-        uintptr_t fat_offset = boot_volume_image->rsvd_sec_cnt *
-                               boot_volume_image->bytes_per_sec;
-
-        uint32_t *fat = reinterpret_cast<uint32_t *>(
-            reinterpret_cast<uintptr_t>(boot_volume_image) + fat_offset);
+        uint32_t *fat = GetFAT();
         uint32_t next = fat[cluster];
-        if (next >= 0x0ffffff8ul)
+        if (IsEndOfClusterchain(next))
         {
             return kEndOfClusterchain;
         }
@@ -220,6 +216,56 @@ namespace fat
         return total;
     }
 
+    size_t FileDescriptor::Write(const void *buf, size_t len)
+    {
+        auto num_cluster = [](size_t bytes)
+        {
+            return (bytes + bytes_per_cluster - 1) / bytes_per_cluster;
+        };
+        if (wr_cluster_ == 0)
+        {
+            if (fat_entry_.FirstCluster() != 0)
+            {
+                wr_cluster_ = fat_entry_.FirstCluster();
+            }
+            else
+            {
+                wr_cluster_ = AllocateClusterChain(num_cluster(len));
+                fat_entry_.fst_clus_lo = wr_cluster_ & 0xffff;
+                fat_entry_.fst_clus_hi = (wr_cluster_ >> 16) & 0xffff;
+            }
+        }
+
+        const uint8_t *buf8 = reinterpret_cast<const uint8_t *>(buf);
+
+        size_t total = 0;
+        while (total < len)
+        {
+            if (wr_cluster_off_ == bytes_per_cluster)
+            {
+                const auto next_cluster = NextCluster(wr_cluster_);
+                if (next_cluster == kEndOfClusterchain)
+                {
+                    wr_cluster_ = ExtendCluster(wr_cluster_, num_cluster(len - total));
+                }
+                else
+                {
+                    wr_cluster_ = next_cluster;
+                }
+                wr_cluster_off_ = 0;
+            }
+
+            uint8_t *sec = GetSectorByCluster<uint8_t>(wr_cluster_);
+            size_t n = std::min(len, bytes_per_cluster - wr_cluster_off_);
+            memcpy(&sec[wr_cluster_off_], &buf8[total], n);
+            total += n;
+            wr_cluster_off_ += n;
+        }
+        wr_off_ += total;
+        fat_entry_.file_size = wr_off_;
+        return total;
+    }
+
     WithError<DirectoryEntry *> CreateFile(const char *path)
     {
         auto parent_dir_cluster = fat::boot_volume_image->root_clus;
@@ -281,6 +327,26 @@ namespace fat
         auto dir = GetSectorByCluster<DirectoryEntry>(dir_cluster);
         memset(dir, 0, bytes_per_cluster);
         return &dir[0];
+    }
+
+    unsigned long AllocateClusterChain(size_t n)
+    {
+        uint32_t *fat = GetFAT();
+        unsigned long first_cluster;
+        for (first_cluster = 2;; first_cluster++)
+        {
+            if (fat[first_cluster] == 0)
+            {
+                fat[first_cluster] = kEndOfClusterchain;
+                break;
+            }
+        }
+
+        if (n > 1)
+        {
+            ExtendCluster(first_cluster, n - 1);
+        }
+        return first_cluster;
     }
 
     unsigned long ExtendCluster(unsigned long eoc_cluster, size_t n)

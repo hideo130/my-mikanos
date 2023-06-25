@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 
 void _exit(void)
 {

@@ -49,7 +49,6 @@ public:
 };
 
 void TaskTerminal(uint64_t task_id, int64_t data);
-extern std::map<uint64_t, Terminal *> *terminals;
 WithError<PageMapEntry *> SetupPML4(Task &current_task);
 Error FreePML4(Task &current_task);
 void ListAllEntries(Terminal *term, uint32_t dir_cluster);
@@ -59,6 +58,7 @@ class TerminalFileDescriptor : public FileDescriptor
 public:
     explicit TerminalFileDescriptor(Task &task, Terminal &term);
     size_t Read(void *buf, size_t len) override;
+    size_t Write(const void *buf, size_t len) override;
 
 private:
     Task &task_;

@@ -87,7 +87,7 @@ namespace fat
     void FormatName(const DirectoryEntry &entry, char *dest);
 
     unsigned long NextCluster(unsigned long cluster);
-    static const unsigned long kEndOfClusterchain = 0x0fffffflu;
+    static const unsigned long kEndOfClusterchain = 0x0ffffffflu;
     std::pair<DirectoryEntry *, bool> FindFile(const char *name, unsigned long directory_cluster = 0);
     std::pair<const char *, bool> NextPathElement(const char *path, char *path_elem);
 
@@ -98,19 +98,28 @@ namespace fat
     public:
         explicit FileDescriptor(DirectoryEntry &fat_entry);
         size_t Read(void *buf, size_t len) override;
+        size_t Write(const void *buf, size_t len) override;
 
     private:
         DirectoryEntry &fat_entry_;
         size_t rd_off_ = 0;
         unsigned long rd_cluster_ = 0;
         size_t rd_cluster_off_ = 0;
+        // Use the following 3 variables for writing.
+        // off set from file head
+        size_t wr_off_ = 0;
+        // Write target cluster number
+        unsigned long wr_cluster_ = 0;
+        // Offset at cluster
+        size_t wr_cluster_off_ = 0;
     };
 
-    bool IsEndOfClusterchain(uint32_t cluster);
-    
+    bool IsEndOfClusterchain(unsigned long cluster);
+
     void SetFileName(DirectoryEntry &dir, const char *filename);
     WithError<DirectoryEntry *> CreateFile(const char *path);
     DirectoryEntry *AllocateEntry(unsigned long dir_cluster);
+    unsigned long AllocateClusterChain(size_t n);
     unsigned long ExtendCluster(unsigned long eoc_cluster, size_t n);
     uint32_t *GetFAT();
 }
