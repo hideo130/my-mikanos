@@ -92,6 +92,20 @@ namespace
         return 0;
     }
 
+    uint64_t GetLastLoadAddress(Elf64_Ehdr *ehdr)
+    {
+        uint64_t last_addr = 0;
+        auto phdr = GetProgramHeader(ehdr);
+        for (int i = 0; i < ehdr->e_phnum; i++)
+        {
+            if (phdr[i].p_type != PT_LOAD)
+                continue;
+            uint64_t candidat_address = phdr[i].p_vaddr + phdr[i].p_memsz;
+            last_addr = std::max(last_addr, candidat_address);
+        }
+        return last_addr;
+    }
+
     WithError<PageMapEntry *> NewPageMap()
     {
         // allocate a frame, its size is indicated kBytesPerFrame
@@ -213,11 +227,11 @@ namespace
         return MAKE_ERROR(Error::kSuccess);
     }
 
-    Error LoadElf(Elf64_Ehdr *ehdr)
+    WithError<uint64_t> LoadElf(Elf64_Ehdr *ehdr)
     {
         if (ehdr->e_type != ET_EXEC)
         {
-            return MAKE_ERROR(Error::kInvalidFormat);
+            return {0, MAKE_ERROR(Error::kInvalidFormat)};
         }
 
         // get first load addr to wheather it's valid
@@ -225,15 +239,16 @@ namespace
         // virtual address of application range is 0xffff'8000'0000'0000 or more
         if (addr_first < 0xffff'8000'0000'0000)
         {
-            return MAKE_ERROR(Error::kInvalidFormat);
+            return {0, MAKE_ERROR(Error::kInvalidFormat)};
         }
 
         if (auto err = CopyLoadSegments(ehdr))
         {
-            return err;
+            return {0, err};
         }
 
-        return MAKE_ERROR(Error::kSuccess);
+        uint64_t last_addr = GetLastLoadAddress(ehdr);
+        return {last_addr, MAKE_ERROR(Error::kSuccess)};
     }
 
     static_assert(kBytesPerFrame >= 4096);
