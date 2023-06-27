@@ -93,6 +93,10 @@ GetCR3:
     mov rax, cr3
     ret
 
+global GetCR2 ; uint64_t GetCR2();
+GetCR2:
+    mov rax, cr2
+    ret
 
 global SwitchContext
 SwitchContext: ;void SwitchContext(void *next_ctx, void *current_ctx);
