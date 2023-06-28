@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include "error.hpp"
 
 const size_t kPageDirectoryCount = 64;
 
@@ -96,3 +97,6 @@ union PageMapEntry
 };
 
 void ResetCR3();
+WithError<PageMapEntry *> NewPageMap();
+Error SetupPageMaps(LinearAddress4Level addr, size_t num_4kpages);
+Error HandlePageFault(uint64_t error_code, uint64_t causal_addr);

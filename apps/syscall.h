@@ -32,6 +32,7 @@ extern "C"
     struct SyscallResult SyscallReadEvent(struct AppEvent *events, size_t len);
     struct SyscallResult SyscallOpenFile(const char *path, int flags);
     struct SyscallResult SyscallReadFile(int fd, void *buf, size_t count);
+    struct SyscallResult SyscallDemandPages(int num_pages, int flags);
 
 #define TIMER_ONESHOT_REL 1
 #define TIMER_ONESHOT_ABS 0

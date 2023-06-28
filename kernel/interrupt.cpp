@@ -9,6 +9,7 @@
 #include "task.hpp"
 #include "timer.hpp"
 #include "signal.h"
+#include "paging.hpp"
 
 void NotifyEndOfInterrupt()
 {
@@ -78,10 +79,12 @@ namespace
         ExitApp(task.OSStackPointer(), 128 + SIGSEGV);
     }
 
-    __attribute__((interupt)) void IntHandlerPF(InterruptFrame *frame, uint64_t error_code)
+    __attribute__((interrupt)) void IntHandlerPF(InterruptFrame *frame, uint64_t error_code)
     {
+        
         uint64_t cr2 = GetCR2();
-        if (auto err = HandlePageFault(error_code, cr2); !err)
+        auto err = HandlePageFault(error_code, cr2);
+        if (!err)
         {
             return;
         }
@@ -124,7 +127,6 @@ namespace
     FaultHandlerWithError(NP);
     FaultHandlerWithError(SS);
     FaultHandlerWithError(GP);
-    FaultHandlerWithError(PF);
     FaultHandlerNoError(MF);
     FaultHandlerWithError(AC);
     FaultHandlerNoError(MC);

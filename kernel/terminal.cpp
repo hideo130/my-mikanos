@@ -6,6 +6,7 @@
 #include "memory_manager.hpp"
 #include "task.hpp"
 #include "terminal.hpp"
+#include "paging.hpp"
 #include "pci.hpp"
 
 namespace
@@ -104,95 +105,6 @@ namespace
             last_addr = std::max(last_addr, candidat_address);
         }
         return last_addr;
-    }
-
-    WithError<PageMapEntry *> NewPageMap()
-    {
-        // allocate a frame, its size is indicated kBytesPerFrame
-        // that is 4Kib bytes = 4 * 1024 bytes
-        auto frame = memory_manager->Allocate(1);
-        if (frame.error)
-        {
-            return {nullptr, frame.error};
-        }
-
-        auto e = reinterpret_cast<PageMapEntry *>(frame.value.Frame());
-
-        // Why does we multiply 512?
-        // Becasue a page map has 512 PageMapEntry.
-        // I think rest of memory is 4*1024bytes - 512*8bytes = 0
-        memset(e, 0, sizeof(uint64_t) * 512);
-        return {e, MAKE_ERROR(Error::kSuccess)};
-    }
-
-    WithError<PageMapEntry *> SetNewPageMapIfNotPresent(PageMapEntry &entry)
-    {
-        if (entry.bits.present)
-        {
-            return {entry.Pointer(), MAKE_ERROR(Error::kSuccess)};
-        }
-
-        auto [child_map, err] = NewPageMap();
-        if (err)
-        {
-            return {nullptr, err};
-        }
-
-        entry.SetPointer(child_map);
-        entry.bits.present = 1;
-        return {child_map, MAKE_ERROR(Error::kSuccess)};
-    }
-
-    WithError<size_t> SetupPageMap(
-        PageMapEntry *page_map, int page_map_level, LinearAddress4Level addr, size_t num_4kpages)
-    {
-        while (num_4kpages > 0)
-        {
-            const auto entry_index = addr.Part(page_map_level);
-
-            auto [child_map, err] = SetNewPageMapIfNotPresent(page_map[entry_index]);
-            if (err)
-            {
-                return {num_4kpages, err};
-            }
-            page_map[entry_index].bits.writable = 1;
-            page_map[entry_index].bits.user = 1;
-            if (page_map_level == 1)
-            {
-                num_4kpages--;
-            }
-            else
-            {
-                auto [num_remain_pages, err] =
-                    SetupPageMap(child_map, page_map_level - 1, addr, num_4kpages);
-                if (err)
-                {
-                    return {num_4kpages, err};
-                }
-                num_4kpages = num_remain_pages;
-            }
-
-            if (entry_index == 511)
-            {
-                break;
-            }
-
-            addr.SetPart(page_map_level, entry_index + 1);
-            for (int level = page_map_level - 1; level >= 1; level--)
-            {
-                addr.SetPart(level, 0);
-            }
-        }
-        // ret val is num that we could not allocate page
-        return {num_4kpages, MAKE_ERROR(Error::kSuccess)};
-    }
-
-    Error SetupPageMaps(LinearAddress4Level addr, size_t num_4kpages)
-    {
-        auto pml4_table = reinterpret_cast<PageMapEntry *>(GetCR3());
-        // SetupPageMap may not be able to allocate full size of num_4kpages.
-        // the rest is retun value but we do not handle it.
-        return SetupPageMap(pml4_table, 4, addr, num_4kpages).error;
     }
 
     Error CopyLoadSegments(Elf64_Ehdr *ehdr)
@@ -644,10 +556,11 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry &file_entry, char *command
     {
         return pml4.error;
     }
+    const auto [elf_last_addr, elf_err] = LoadElf(elf_header);
 
-    if (auto err = LoadElf(elf_header))
+    if (elf_err)
     {
-        return err;
+        return elf_err;
     }
 
     LinearAddress4Level args_frame_addr{0xffff'ffff'ffff'f000};
@@ -676,6 +589,10 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry &file_entry, char *command
             std::make_unique<TerminalFileDescriptor>(task, *this));
     }
 
+    const uint64_t elf_next_page = (elf_last_addr + kBytesPerFrame +  4095) & 0xffff'ffff'ffff'f000;
+    task.SetDPagingBegin(elf_next_page);
+    task.SetDPagingEnd(elf_last_addr);
+
     auto entry_addr = elf_header->e_entry;
     // Expression 3<<3 | 3 is same for table 20.3
     uint16_t user_cpl = 3;
@@ -683,7 +600,6 @@ Error Terminal::ExecuteFile(const fat::DirectoryEntry &file_entry, char *command
     uint16_t ss_value = gdt_index_of_ss << 3 | user_cpl;
     // 4096 = 0x1000
     // why do we subtract 8?
-
     int ret = CallApp(argc.value, argv, ss_value, entry_addr,
                       stack_frame_addr.value + 4096 - 8,
                       &task.OSStackPointer());

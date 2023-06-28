@@ -12,5 +12,11 @@ kernel.elf
 */eye/eye
 */paint/paint
 */fault/fault
+*/timer/timer
+*/readfile/readfile
+*/grep/grep
+*/cp/cp
+*/dpage/dpage
+
 a.out
 mnt/
